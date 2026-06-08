@@ -180,6 +180,21 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 
+  /* ── MEP banner ── */
+  .mep-bar { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; }
+  .mep-rate { font-family: var(--mono); font-size: 14px; color: var(--accent); }
+  .mep-label { color: var(--muted); font-size: 12px; }
+  .currency-toggle { display: flex; background: var(--bg); border: 1px solid var(--border2); border-radius: var(--radius-sm); overflow: hidden; }
+  .currency-toggle button { padding: 5px 14px; font-family: var(--mono); font-size: 11px; border: none; cursor: pointer; transition: all 0.15s; background: transparent; color: var(--muted); letter-spacing: 0.05em; }
+  .currency-toggle button.active { background: var(--accent); color: #0a0f0a; }
+  .converter-box { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px; }
+  .converter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .converter-row input { background: var(--bg); border: 1px solid var(--border2); border-radius: var(--radius-sm); color: var(--text); font-family: var(--mono); font-size: 14px; padding: 8px 12px; outline: none; width: 160px; }
+  .converter-row input:focus { border-color: var(--accent); }
+  .converter-arrow { color: var(--muted); font-size: 18px; }
+  .converter-result { font-family: var(--mono); font-size: 18px; color: var(--accent); }
+  .converter-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
   /* ── Mobile ── */
   @media (max-width: 768px) {
     .app { grid-template-columns: 1fr; }
@@ -223,9 +238,21 @@
 
     <!-- ── DASHBOARD ── -->
     <div class="page active" id="page-dashboard">
-      <div class="page-header">
-        <div class="page-title">Dashboard</div>
-        <div class="page-sub">Your independent trade lots at a glance</div>
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-sub">Your independent trade lots at a glance</div>
+        </div>
+        <div class="currency-toggle">
+          <button id="toggle-usd" class="active" onclick="setCurrency('USD')">USD</button>
+          <button id="toggle-ars" onclick="setCurrency('ARS')">ARS</button>
+        </div>
+      </div>
+      <div class="mep-bar" id="mep-bar">
+        <span class="mep-label">Dólar MEP</span>
+        <span class="mep-rate" id="mep-rate-display">—</span>
+        <span class="mep-label" id="mep-updated"></span>
+        <button class="btn btn-ghost btn-sm" onclick="fetchMEP()" style="margin-left:auto;">↻ Actualizar MEP</button>
       </div>
       <div class="metrics" id="dash-metrics"></div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;" class="dash-charts-grid">
@@ -269,12 +296,30 @@
         <div class="page-title">Register trade</div>
         <div class="page-sub">Each entry is tracked as an independent lot</div>
       </div>
+
+      <!-- MEP Converter -->
+      <div class="converter-box">
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.12em;color:var(--muted);text-transform:uppercase;margin-bottom:12px;">Conversor ARS → USD (Dólar MEP)</div>
+        <div class="converter-row">
+          <div>
+            <input type="number" id="conv-ars" placeholder="Pesos ARS" step="any" min="0" oninput="convertARS()" />
+            <div class="converter-sub">Monto en pesos</div>
+          </div>
+          <span class="converter-arrow">→</span>
+          <div>
+            <div class="converter-result" id="conv-usd-result">—</div>
+            <div class="converter-sub" id="conv-rate-label">MEP: <span id="conv-mep-val">cargando...</span></div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="fetchMEP()" style="margin-left:8px;">↻ MEP</button>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-body">
           <div class="form-grid">
             <div class="field">
               <label>Ticker</label>
-              <input type="text" id="f-ticker" placeholder="AAPL" style="text-transform:uppercase;" />
+              <input type="text" id="f-ticker" placeholder="NVDA / NVDA.BA" style="text-transform:uppercase;" />
             </div>
             <div class="field">
               <label>Action</label>
@@ -288,8 +333,18 @@
               <input type="number" id="f-shares" placeholder="10" min="0.0001" step="any" />
             </div>
             <div class="field">
-              <label>Price per share ($)</label>
-              <input type="number" id="f-price" placeholder="150.00" min="0.0001" step="any" />
+              <label>Price per share</label>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <input type="number" id="f-price" placeholder="150.00" min="0.0001" step="any" style="flex:1;" />
+                <select id="f-currency" style="width:80px;" onchange="onCurrencyFieldChange()">
+                  <option value="USD">USD</option>
+                  <option value="ARS">ARS</option>
+                </select>
+              </div>
+            </div>
+            <div class="field" id="f-ars-equiv-wrap" style="display:none;">
+              <label>Equiv. USD (MEP)</label>
+              <input type="number" id="f-price-usd" placeholder="auto" step="any" min="0.0001" style="background:var(--surface2);" readonly />
             </div>
             <div class="field">
               <label>Date</label>
@@ -475,6 +530,8 @@
 let trades = JSON.parse(localStorage.getItem('tj_trades') || '[]');
 let prices = JSON.parse(localStorage.getItem('tj_prices') || '{}');
 let apiKey = localStorage.getItem('tj_apikey') || '';
+let mepRate = parseFloat(localStorage.getItem('tj_mep') || '0');
+let displayCurrency = localStorage.getItem('tj_currency') || 'USD';
 let lotCounter = trades.length ? Math.max(...trades.map(t => t.id)) + 1 : 1;
 let closingLotId = null;
 let charts = {};
@@ -484,6 +541,9 @@ document.getElementById('f-date').value = today();
 document.getElementById('m-exit-date').value = today();
 if (apiKey) document.getElementById('s-apikey').value = apiKey;
 updateApiStatus();
+setCurrency(displayCurrency, false);
+if (mepRate > 0) updateMEPDisplay();
+else fetchMEP();
 renderAll();
 
 function save() {
@@ -507,6 +567,78 @@ function showPage(id) {
 }
 
 function hideModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ── MEP & Currency ─────────────────────────────────────────────────────────
+async function fetchMEP() {
+  try {
+    const r = await fetch('https://dolarapi.com/v1/dolares/bolsa');
+    const d = await r.json();
+    if (d.venta) {
+      mepRate = d.venta;
+      localStorage.setItem('tj_mep', mepRate);
+      updateMEPDisplay();
+      convertARS();
+      renderAll();
+    }
+  } catch (e) { console.warn('MEP fetch failed', e); }
+}
+
+function updateMEPDisplay() {
+  const fmt = mepRate > 0 ? '$' + mepRate.toLocaleString('es-AR', { minimumFractionDigits: 2 }) + ' ARS/USD' : '—';
+  document.getElementById('mep-rate-display').textContent = fmt;
+  document.getElementById('conv-mep-val').textContent = fmt;
+  document.getElementById('mep-updated').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function setCurrency(cur, rerender = true) {
+  displayCurrency = cur;
+  localStorage.setItem('tj_currency', cur);
+  document.getElementById('toggle-usd').classList.toggle('active', cur === 'USD');
+  document.getElementById('toggle-ars').classList.toggle('active', cur === 'ARS');
+  if (rerender) renderAll();
+}
+
+function onCurrencyFieldChange() {
+  const cur = document.getElementById('f-currency').value;
+  document.getElementById('f-ars-equiv-wrap').style.display = cur === 'ARS' ? 'flex' : 'none';
+  autoCalcUSD();
+}
+
+function autoCalcUSD() {
+  const arsPrice = parseFloat(document.getElementById('f-price').value);
+  if (document.getElementById('f-currency').value === 'ARS' && arsPrice > 0 && mepRate > 0) {
+    document.getElementById('f-price-usd').value = (arsPrice / mepRate).toFixed(4);
+  } else {
+    document.getElementById('f-price-usd').value = '';
+  }
+}
+
+document.getElementById('f-price').addEventListener('input', autoCalcUSD);
+
+function convertARS() {
+  const ars = parseFloat(document.getElementById('conv-ars').value);
+  if (ars > 0 && mepRate > 0) {
+    document.getElementById('conv-usd-result').textContent = '$' + (ars / mepRate).toFixed(2) + ' USD';
+  } else {
+    document.getElementById('conv-usd-result').textContent = '—';
+  }
+}
+
+// helper: get effective USD price for a trade
+function usdPrice(t) {
+  if (t.currency === 'ARS' && t.priceARS && mepRate > 0) return t.priceARS / (t.mepAtEntry || mepRate);
+  return t.price;
+}
+
+function displayPrice(usd) {
+  if (displayCurrency === 'ARS' && mepRate > 0) return '$ ' + (usd * mepRate).toLocaleString('es-AR', { minimumFractionDigits: 2 }) + ' ARS';
+  return '$' + usd.toFixed(2);
+}
+
+function displayVal(usd) {
+  if (displayCurrency === 'ARS' && mepRate > 0) return (usd * mepRate).toLocaleString('es-AR', { minimumFractionDigits: 2 }) + ' ARS';
+  return usd.toFixed(2);
+}
 
 // ── API ─────────────────────────────────────────────────────────────────────
 function updateApiStatus() {
@@ -561,19 +693,30 @@ function addTrade() {
   const ticker = document.getElementById('f-ticker').value.trim().toUpperCase();
   const action = document.getElementById('f-action').value;
   const shares = parseFloat(document.getElementById('f-shares').value);
-  const price = parseFloat(document.getElementById('f-price').value);
+  const rawPrice = parseFloat(document.getElementById('f-price').value);
+  const currency = document.getElementById('f-currency').value;
   const date = document.getElementById('f-date').value;
   const notes = document.getElementById('f-notes').value.trim();
   const err = document.getElementById('form-error');
 
   if (!ticker) { err.textContent = 'Ticker required'; err.style.display = 'inline'; return; }
   if (!shares || shares <= 0) { err.textContent = 'Enter valid share count'; err.style.display = 'inline'; return; }
-  if (!price || price <= 0) { err.textContent = 'Enter valid price'; err.style.display = 'inline'; return; }
+  if (!rawPrice || rawPrice <= 0) { err.textContent = 'Enter valid price'; err.style.display = 'inline'; return; }
   if (!date) { err.textContent = 'Select a date'; err.style.display = 'inline'; return; }
   err.style.display = 'none';
 
-  trades.push({ id: lotCounter++, ticker, action, shares, price, date, notes, status: 'OPEN', exitPrice: null, exitDate: null });
-  if (!(ticker in prices)) prices[ticker] = price;
+  // Convert to USD for storage; keep original ARS for reference
+  let priceUSD = rawPrice;
+  let priceARS = null;
+  let mepAtEntry = null;
+  if (currency === 'ARS' && mepRate > 0) {
+    priceARS = rawPrice;
+    mepAtEntry = mepRate;
+    priceUSD = rawPrice / mepRate;
+  }
+
+  trades.push({ id: lotCounter++, ticker, action, shares, price: priceUSD, priceARS, mepAtEntry, currency, date, notes, status: 'OPEN', exitPrice: null, exitDate: null });
+  if (!(ticker in prices)) prices[ticker] = priceUSD;
   save();
 
   document.getElementById('f-ticker').value = '';
@@ -648,15 +791,20 @@ function renderMetrics(targetId) {
   const cost = open.reduce((s, t) => s + t.price * t.shares, 0);
   const mkt = open.reduce((s, t) => s + (prices[t.ticker] || t.price) * t.shares, 0);
   const tickers = new Set(open.map(t => t.ticker)).size;
+  const iARS = displayCurrency === 'ARS' && mepRate > 0;
+  const sym = iARS ? '' : '$';
+  const sfx = iARS ? ' ARS' : '';
+  const cv = v => iARS ? (v * mepRate).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : v.toFixed(2);
   const el = document.getElementById(targetId);
   if (!el) return;
   el.innerHTML = `
     <div class="metric"><div class="metric-label">Open lots</div><div class="metric-value">${open.length}</div></div>
     <div class="metric"><div class="metric-label">Tickers</div><div class="metric-value">${tickers}</div></div>
-    <div class="metric"><div class="metric-label">Total invested</div><div class="metric-value">$${cost.toFixed(2)}</div></div>
-    <div class="metric"><div class="metric-label">Market value</div><div class="metric-value">$${mkt.toFixed(2)}</div></div>
-    <div class="metric"><div class="metric-label">Unrealized P&L</div><div class="metric-value ${cls(unreal)}">${fmt$(unreal, true)}</div></div>
-    <div class="metric"><div class="metric-label">Realized P&L</div><div class="metric-value ${cls(real)}">${fmt$(real, true)}</div></div>
+    <div class="metric"><div class="metric-label">Total invested</div><div class="metric-value">${sym}${cv(cost)}${sfx}</div></div>
+    <div class="metric"><div class="metric-label">Market value</div><div class="metric-value">${sym}${cv(mkt)}${sfx}</div></div>
+    <div class="metric"><div class="metric-label">Unrealized P&L</div><div class="metric-value ${cls(unreal)}">${unreal >= 0 ? '+' : '-'}${sym}${cv(Math.abs(unreal))}${sfx}</div></div>
+    <div class="metric"><div class="metric-label">Realized P&L</div><div class="metric-value ${cls(real)}">${real >= 0 ? '+' : '-'}${sym}${cv(Math.abs(real))}${sfx}</div></div>
+    ${iARS ? `<div class="metric"><div class="metric-label">MEP rate</div><div class="metric-value" style="font-size:14px;">${mepRate > 0 ? '$' + mepRate.toLocaleString('es-AR', {minimumFractionDigits:2}) : '—'}</div></div>` : ''}
   `;
 }
 
@@ -667,6 +815,7 @@ function renderOpenTable(tbodyId, showDays) {
   if (!open.length) { tbody.innerHTML = `<tr><td colspan="13"><div class="empty"><div class="empty-icon">📊</div><div class="empty-text">No open positions yet</div></div></td></tr>`; return; }
   const grouped = {};
   open.forEach(t => (grouped[t.ticker] = grouped[t.ticker] || []).push(t));
+  const iARS = displayCurrency === 'ARS' && mepRate > 0;
   let html = '';
   Object.entries(grouped).forEach(([tk, lots]) => {
     lots.forEach((t, i) => {
@@ -677,19 +826,25 @@ function renderOpenTable(tbodyId, showDays) {
       const days = daysBetween(t.date, today());
       const isLive = !!prices[t.ticker];
       const curDisplay = isLive
-        ? `<span class="price-live"><span class="live-dot"></span>$${cur.toFixed(2)}</span>`
-        : `<span class="neutral">$${cur.toFixed(2)}</span>`;
+        ? `<span class="price-live"><span class="live-dot"></span>${iARS ? '$'+(cur*mepRate).toLocaleString('es-AR',{minimumFractionDigits:0})+' ARS' : '$'+cur.toFixed(2)}</span>`
+        : `<span class="neutral">${iARS ? '$'+(cur*mepRate).toLocaleString('es-AR',{minimumFractionDigits:0})+' ARS' : '$'+cur.toFixed(2)}</span>`;
+      const entryDisplay = t.priceARS
+        ? `<span title="USD: $${t.price.toFixed(4)}">$${t.priceARS.toLocaleString('es-AR',{minimumFractionDigits:2})} ARS</span>`
+        : (iARS ? '$'+(t.price*mepRate).toLocaleString('es-AR',{minimumFractionDigits:0})+' ARS' : '$'+t.price.toFixed(2));
+      const costDisplay = iARS ? '$'+(cost*mepRate).toLocaleString('es-AR',{minimumFractionDigits:0})+' ARS' : '$'+cost.toFixed(2);
+      const mvDisplay = iARS ? '$'+(mv*mepRate).toLocaleString('es-AR',{minimumFractionDigits:0})+' ARS' : '$'+mv.toFixed(2);
+      const gainDisplay = iARS ? (p.gain>=0?'+':'-')+'$'+Math.abs(p.gain*mepRate).toLocaleString('es-AR',{minimumFractionDigits:0})+' ARS' : fmt$(p.gain,true);
       const daysCell = showDays ? `<td class="td-mono neutral">${days}d</td>` : '';
       html += `<tr>
         <td class="td-ticker">${i === 0 ? tk : ''}</td>
         <td class="td-lot">Lot ${lotNum(t)}</td>
         <td class="td-mono neutral">${t.date}</td>
         <td class="td-mono">${t.shares}</td>
-        <td class="td-mono">$${t.price.toFixed(2)}</td>
+        <td class="td-mono">${entryDisplay}</td>
         <td>${curDisplay}</td>
-        <td class="td-mono">$${cost.toFixed(2)}</td>
-        <td class="td-mono">$${mv.toFixed(2)}</td>
-        <td class="td-mono ${cls(p.gain)}">${fmt$(p.gain, true)}</td>
+        <td class="td-mono">${costDisplay}</td>
+        <td class="td-mono">${mvDisplay}</td>
+        <td class="td-mono ${cls(p.gain)}">${gainDisplay}</td>
         <td class="td-mono ${cls(p.pct)}">${fmtPct(p.pct)}</td>
         ${daysCell}
         <td style="color:var(--muted);font-size:12px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.notes || '—'}</td>
