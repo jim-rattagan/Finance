@@ -31,7 +31,7 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.6;min-height:100vh;transition:background .2s,color .2s;}
 .app{display:grid;grid-template-columns:220px 1fr;min-height:100vh;}
-.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:28px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:28px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;}
 .main{padding:32px 36px;overflow-x:hidden;}
 .logo{padding:0 20px 24px;border-bottom:1px solid var(--border);margin-bottom:20px;}
 .logo-mark{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.15em;color:var(--accent);text-transform:uppercase;margin-bottom:2px;}
@@ -134,30 +134,36 @@ tbody tr:hover td{background:rgba(128,128,128,.04);}
 .sri{flex:1;}.srt{font-size:13px;font-weight:500;margin-bottom:2px;}.srd{font-size:12px;color:var(--muted);}
 .sinp{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:7px 10px;outline:none;width:240px;}
 .sinp:focus{border-color:var(--accent);}
-::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 .rp-empty{padding:60px 20px;text-align:center;color:var(--muted);font-size:13px;}
+::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 @media(max-width:768px){.app{grid-template-columns:1fr;}.sidebar{position:static;height:auto;flex-direction:row;padding:10px 12px;overflow-x:auto;}.logo,.sidebar-footer{display:none;}.nav-section{display:flex;gap:4px;margin:0;padding:0;}.nav-label{display:none;}.main{padding:16px;}}
 </style>
 </head>
 <body>
 <div class="app">
 <aside class="sidebar">
-  <div class="logo"><div class="logo-mark">Portfolio</div><div class="logo-name">Trade Journal</div></div>
+  <div class="logo">
+    <div class="logo-mark">Portfolio</div>
+    <div class="logo-name">Trade Journal</div>
+  </div>
   <div class="nav-section">
     <div class="nav-label">Views</div>
-    <button class="nav-item active" onclick="sp('dashboard')"><span class="nav-dot"></span>Dashboard</button>
-    <button class="nav-item" onclick="sp('register')"><span class="nav-dot"></span>Register trade</button>
-    <button class="nav-item" onclick="sp('open')"><span class="nav-dot"></span>Open positions</button>
-    <button class="nav-item" onclick="sp('closed')"><span class="nav-dot"></span>Closed trades</button>
-    <button class="nav-item" onclick="sp('timeline')"><span class="nav-dot"></span>Trade timeline</button>
-    <button class="nav-item" onclick="sp('holding')"><span class="nav-dot"></span>Holding analysis</button>
-    <button class="nav-item" onclick="sp('report')"><span class="nav-dot"></span>Report</button>
-    <button class="nav-item" onclick="sp('analytics')"><span class="nav-dot"></span>Analytics</button>
-    <button class="nav-item" onclick="sp('settings')"><span class="nav-dot"></span>Settings</button>
+    <button class="nav-item active" data-page="dashboard"><span class="nav-dot"></span>Dashboard</button>
+    <button class="nav-item" data-page="register"><span class="nav-dot"></span>Register trade</button>
+    <button class="nav-item" data-page="open"><span class="nav-dot"></span>Open positions</button>
+    <button class="nav-item" data-page="closed"><span class="nav-dot"></span>Closed trades</button>
+    <button class="nav-item" data-page="timeline"><span class="nav-dot"></span>Trade timeline</button>
+    <button class="nav-item" data-page="holding"><span class="nav-dot"></span>Holding analysis</button>
+    <button class="nav-item" data-page="report"><span class="nav-dot"></span>Report</button>
+    <button class="nav-item" data-page="analytics"><span class="nav-dot"></span>Analytics</button>
+    <button class="nav-item" data-page="settings"><span class="nav-dot"></span>Settings</button>
   </div>
   <div class="sidebar-footer">
     <div class="api-status"><span class="status-dot" id="sdot"></span><span id="stxt">No API key</span></div>
-    <button class="theme-toggle" onclick="toggleTheme()"><div class="toggle-track"><div class="toggle-thumb"></div></div><span id="tlabel">Light mode</span></button>
+    <button class="theme-toggle" id="themeBtn">
+      <div class="toggle-track"><div class="toggle-thumb"></div></div>
+      <span id="tlabel">Light mode</span>
+    </button>
   </div>
 </aside>
 <main class="main">
@@ -166,14 +172,20 @@ tbody tr:hover td{background:rgba(128,128,128,.04);}
 <div class="page active" id="page-dashboard">
   <div class="page-header">
     <div><div class="page-title">Dashboard</div><div class="page-sub">Your independent trade lots at a glance</div></div>
-    <div style="display:flex;gap:8px;align-items:center;"><span id="lrefresh" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);"></span><button class="btn btn-g btn-sm" onclick="refreshPrices()">&#8635; Refresh prices</button></div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span id="lrefresh" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);"></span>
+      <button class="btn btn-g btn-sm" id="btnRefreshDash">&#8635; Refresh prices</button>
+    </div>
   </div>
   <div class="metrics" id="dm"></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
     <div class="card"><div class="card-header"><span class="card-title">P&amp;L by ticker</span></div><div class="card-body" style="padding:16px;"><div class="cw" style="height:200px;"><canvas id="cpnl"></canvas></div></div></div>
     <div class="card"><div class="card-header"><span class="card-title">Portfolio allocation</span></div><div class="card-body" style="padding:16px;"><div class="cw" style="height:200px;"><canvas id="calloc"></canvas></div></div></div>
   </div>
-  <div class="card"><div class="card-header"><span class="card-title">Open positions &mdash; all lots</span></div><div class="tw"><table><thead><tr><th>Ticker</th><th>Lot</th><th>Date</th><th>Shares</th><th>Entry $</th><th>Current $</th><th>Cost basis</th><th>Mkt value</th><th>P&amp;L $</th><th>P&amp;L %</th><th>Held</th><th>Notes</th><th></th></tr></thead><tbody id="dob"></tbody></table></div></div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Open positions &mdash; all lots</span></div>
+    <div class="tw"><table><thead><tr><th>Ticker</th><th>Lot</th><th>Date</th><th>Shares</th><th>Entry $</th><th>Current $</th><th>Cost basis</th><th>Mkt value</th><th>P&amp;L $</th><th>P&amp;L %</th><th>Held</th><th>Notes</th><th></th></tr></thead><tbody id="dob"></tbody></table></div>
+  </div>
 </div>
 
 <!-- REGISTER -->
@@ -184,43 +196,52 @@ tbody tr:hover td{background:rgba(128,128,128,.04);}
       <div class="field"><label>Ticker</label><input type="text" id="ft" placeholder="AAPL" style="text-transform:uppercase"/></div>
       <div class="field"><label>Action</label><select id="fa"><option value="BUY">Buy</option><option value="SELL">Sell / Exit</option></select></div>
       <div class="field"><label>Shares</label><input type="number" id="fs" placeholder="10" min="0.0001" step="any"/></div>
-      <div class="field"><label>Price per share ($)</label><input type="number" id="fp" placeholder="150.00" min="0.0001" step="any"/></div>
+      <div class="field"><label>Price per share ($)</label><input type="number" id="fp2" placeholder="150.00" min="0.0001" step="any"/></div>
       <div class="field"><label>Date</label><input type="date" id="fd"/></div>
     </div>
     <div class="field" style="margin-bottom:16px;"><label>Entry note (optional)</label><textarea id="fn" placeholder="e.g. Short-term swing trade" rows="2"></textarea></div>
-    <div class="form-actions"><span class="err" id="ferr"></span><button class="btn btn-p" onclick="addTrade()">+ Add trade lot</button></div>
+    <div class="form-actions"><span class="err" id="ferr"></span><button class="btn btn-p" id="btnAddTrade">+ Add trade lot</button></div>
   </div></div>
-  <div style="margin-top:24px" class="card"><div class="card-header"><span class="card-title">Recent entries</span></div><div class="tw"><table><thead><tr><th>Ticker</th><th>Action</th><th>Date</th><th>Shares</th><th>Price</th><th>Entry note</th><th></th></tr></thead><tbody id="rb"></tbody></table></div></div>
+  <div style="margin-top:24px" class="card">
+    <div class="card-header"><span class="card-title">Recent entries</span></div>
+    <div class="tw"><table><thead><tr><th>Ticker</th><th>Action</th><th>Date</th><th>Shares</th><th>Price</th><th>Entry note</th><th></th></tr></thead><tbody id="rb"></tbody></table></div>
+  </div>
 </div>
 
-<!-- OPEN -->
+<!-- OPEN POSITIONS -->
 <div class="page" id="page-open">
-  <div class="page-header"><div><div class="page-title">Open positions</div><div class="page-sub">Each lot tracked independently &mdash; no blended averages</div></div><button class="btn btn-g btn-sm" onclick="refreshPrices()">&#8635; Refresh prices</button></div>
+  <div class="page-header">
+    <div><div class="page-title">Open positions</div><div class="page-sub">Each lot tracked independently &mdash; no blended averages</div></div>
+    <button class="btn btn-g btn-sm" id="btnRefreshOpen">&#8635; Refresh prices</button>
+  </div>
   <div class="card"><div class="tw"><table><thead><tr><th>Ticker</th><th>Lot</th><th>Date</th><th>Shares</th><th>Entry $</th><th>Current $</th><th>Cost basis</th><th>Mkt value</th><th>P&amp;L $</th><th>P&amp;L %</th><th>Held</th><th>Notes</th><th></th></tr></thead><tbody id="ob"></tbody></table></div></div>
 </div>
 
-<!-- CLOSED -->
+<!-- CLOSED TRADES -->
 <div class="page" id="page-closed">
   <div class="page-header"><div><div class="page-title">Closed trades</div><div class="page-sub">Realized performance per individual lot</div></div></div>
   <div class="card"><div class="tw"><table><thead><tr><th>Ticker</th><th>Lot</th><th>Entry date</th><th>Exit date</th><th>Shares</th><th>Entry $</th><th>Exit $</th><th>Realized $</th><th>Realized %</th><th>Days held</th><th>Notes</th><th></th></tr></thead><tbody id="cb"></tbody></table></div></div>
 </div>
 
-<!-- TIMELINE -->
+<!-- TRADE TIMELINE -->
 <div class="page" id="page-timeline">
   <div class="page-header">
-    <div><div class="page-title">Trade timeline</div><div class="page-sub">See your entry points plotted on the stock's price history</div></div>
+    <div><div class="page-title">Trade timeline</div><div class="page-sub">Entry points plotted on the stock price history</div></div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <select class="tsel" id="tticker" onchange="renderTimeline()"><option value="">Select ticker&hellip;</option></select>
-      <button class="btn btn-g btn-sm" onclick="fetchAndTimeline()">&#8635; Fetch history</button>
+      <select class="tsel" id="tticker"></select>
+      <button class="btn btn-g btn-sm" id="btnFetchTimeline">&#8635; Fetch history</button>
     </div>
   </div>
   <div class="card" style="margin-bottom:16px;"><div class="card-body" style="padding:16px;"><div class="cw" style="height:320px;"><canvas id="ctl"></canvas></div></div></div>
-  <div class="card" id="tlt" style="display:none;"><div class="card-header"><span class="card-title" id="tlttitle">Lots</span></div><div class="tw"><table><thead><tr><th>Lot</th><th>Date</th><th>Shares</th><th>Entry $</th><th>Current $</th><th>P&amp;L $</th><th>P&amp;L %</th><th>Status</th></tr></thead><tbody id="tlb"></tbody></table></div></div>
+  <div class="card" id="tlt" style="display:none;">
+    <div class="card-header"><span class="card-title" id="tlttitle">Lots</span></div>
+    <div class="tw"><table><thead><tr><th>Lot</th><th>Date</th><th>Shares</th><th>Entry $</th><th>Current $</th><th>P&amp;L $</th><th>P&amp;L %</th><th>Status</th></tr></thead><tbody id="tlb"></tbody></table></div>
+  </div>
 </div>
 
-<!-- HOLDING -->
+<!-- HOLDING ANALYSIS -->
 <div class="page" id="page-holding">
-  <div class="page-header"><div><div class="page-title">Holding analysis</div><div class="page-sub">Flag positions by time held &mdash; review whether your thesis still stands</div></div></div>
+  <div class="page-header"><div><div class="page-title">Holding analysis</div><div class="page-sub">Flag positions by time held</div></div></div>
   <div class="hgrid" id="hsummary"></div>
   <div id="hgroups" style="display:flex;flex-direction:column;gap:16px;"></div>
 </div>
@@ -228,12 +249,10 @@ tbody tr:hover td{background:rgba(128,128,128,.04);}
 <!-- REPORT -->
 <div class="page" id="page-report">
   <div class="page-header">
-    <div><div class="page-title">Portfolio report</div><div class="page-sub">Time evolution of value, cost basis, and P&amp;L — filter by stock</div></div>
+    <div><div class="page-title">Portfolio report</div><div class="page-sub">Time evolution of value, cost basis, and P&amp;L &mdash; filter by stock</div></div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <select class="tsel" id="rp-ticker" onchange="renderReport()">
-        <option value="">All stocks</option>
-      </select>
-      <select class="tsel" id="rp-range" onchange="renderReport()">
+      <select class="tsel" id="rp-ticker"></select>
+      <select class="tsel" id="rp-range">
         <option value="all">All time</option>
         <option value="1y">Last 12 months</option>
         <option value="6m">Last 6 months</option>
@@ -242,11 +261,7 @@ tbody tr:hover td{background:rgba(128,128,128,.04);}
       </select>
     </div>
   </div>
-
-  <!-- Summary metrics row -->
   <div class="metrics" id="rp-metrics"></div>
-
-  <!-- Main portfolio value chart -->
   <div class="card" style="margin-bottom:16px;">
     <div class="card-header">
       <span class="card-title" id="rp-chart-title">Portfolio value over time</span>
@@ -256,12 +271,8 @@ tbody tr:hover td{background:rgba(128,128,128,.04);}
         <span style="display:flex;align-items:center;gap:5px;"><span style="width:12px;height:3px;border:1.5px dashed var(--amber);display:inline-block;border-radius:2px;"></span>P&amp;L</span>
       </div>
     </div>
-    <div class="card-body" style="padding:16px;">
-      <div class="cw" style="height:280px;"><canvas id="rp-chart-main"></canvas></div>
-    </div>
+    <div class="card-body" style="padding:16px;"><div class="cw" style="height:280px;"><canvas id="rp-chart-main"></canvas></div></div>
   </div>
-
-  <!-- Two side-by-side charts -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
     <div class="card">
       <div class="card-header"><span class="card-title">Cumulative P&amp;L over time</span></div>
@@ -272,12 +283,10 @@ tbody tr:hover td{background:rgba(128,128,128,.04);}
       <div class="card-body" style="padding:16px;"><div class="cw" style="height:200px;"><canvas id="rp-chart-lots"></canvas></div></div>
     </div>
   </div>
-
-  <!-- Trade events table -->
   <div class="card">
     <div class="card-header"><span class="card-title" id="rp-events-title">Trade events</span></div>
     <div class="tw"><table>
-      <thead><tr><th>Date</th><th>Ticker</th><th>Lot</th><th>Event</th><th>Shares</th><th>Price</th><th>Amount</th><th>Realized P&L</th><th>Running total P&L</th></tr></thead>
+      <thead><tr><th>Date</th><th>Ticker</th><th>Lot</th><th>Event</th><th>Shares</th><th>Price</th><th>Amount</th><th>Realized P&amp;L</th><th>Running P&amp;L</th></tr></thead>
       <tbody id="rp-events-body"></tbody>
     </table></div>
   </div>
@@ -291,7 +300,10 @@ tbody tr:hover td{background:rgba(128,128,128,.04);}
     <div class="card"><div class="card-header"><span class="card-title">Realized vs Unrealized P&amp;L</span></div><div class="card-body" style="padding:16px;"><div class="cw" style="height:220px;"><canvas id="capnl"></canvas></div></div></div>
     <div class="card"><div class="card-header"><span class="card-title">Win / Loss breakdown</span></div><div class="card-body" style="padding:16px;"><div class="cw" style="height:220px;"><canvas id="cwl"></canvas></div></div></div>
   </div>
-  <div class="card"><div class="card-header"><span class="card-title">All trade lots &mdash; full log</span></div><div class="tw"><table><thead><tr><th>Ticker</th><th>Lot</th><th>Entry date</th><th>Status</th><th>Shares</th><th>Entry $</th><th>P&amp;L $</th><th>P&amp;L %</th></tr></thead><tbody id="lgb"></tbody></table></div></div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">All trade lots &mdash; full log</span></div>
+    <div class="tw"><table><thead><tr><th>Ticker</th><th>Lot</th><th>Entry date</th><th>Status</th><th>Shares</th><th>Entry $</th><th>P&amp;L $</th><th>P&amp;L %</th></tr></thead><tbody id="lgb"></tbody></table></div>
+  </div>
 </div>
 
 <!-- SETTINGS -->
@@ -300,14 +312,20 @@ tbody tr:hover td{background:rgba(128,128,128,.04);}
   <div class="card"><div class="card-body">
     <div class="ss">
       <div class="slabel">Finnhub API</div>
-      <div class="srow"><div class="sri"><div class="srt">API Key</div><div class="srd">Free key at <a href="https://finnhub.io" target="_blank" style="color:var(--blue)">finnhub.io</a> &mdash; 60 calls/min, stored locally in your browser.</div></div><div style="display:flex;gap:8px;align-items:center;"><input type="password" class="sinp" id="sapikey" placeholder="your_finnhub_api_key"/><button class="btn btn-p btn-sm" onclick="saveKey()">Save</button></div></div>
-      <div class="srow"><div class="sri"><div class="srt">Test connection</div><div class="srd">Verify your key with a live AAPL quote.</div></div><button class="btn btn-g btn-sm" onclick="testKey()">Test</button></div>
+      <div class="srow">
+        <div class="sri"><div class="srt">API Key</div><div class="srd">Free key at <a href="https://finnhub.io" target="_blank" style="color:var(--blue)">finnhub.io</a> &mdash; 60 calls/min, stored locally in your browser.</div></div>
+        <div style="display:flex;gap:8px;align-items:center;"><input type="password" class="sinp" id="sapikey" placeholder="your_finnhub_api_key"/><button class="btn btn-p btn-sm" id="btnSaveKey">Save</button></div>
+      </div>
+      <div class="srow">
+        <div class="sri"><div class="srt">Test connection</div><div class="srd">Verify your key with a live AAPL quote.</div></div>
+        <button class="btn btn-g btn-sm" id="btnTestKey">Test</button>
+      </div>
     </div>
     <div class="ss">
       <div class="slabel">Data</div>
-      <div class="srow"><div class="sri"><div class="srt">Export trades</div><div class="srd">Download all data as JSON backup.</div></div><button class="btn btn-g btn-sm" onclick="exportData()">Export JSON</button></div>
-      <div class="srow"><div class="sri"><div class="srt">Import trades</div><div class="srd">Restore from a previously exported JSON file.</div></div><div><input type="file" id="ifile" accept=".json" style="display:none" onchange="importData(event)"/><button class="btn btn-g btn-sm" onclick="document.getElementById('ifile').click()">Import JSON</button></div></div>
-      <div class="srow"><div class="sri"><div class="srt">Clear all data</div><div class="srd" style="color:var(--red)">Permanently deletes all trades.</div></div><button class="btn btn-g btn-sm" style="color:var(--red);border-color:var(--red-dim)" onclick="clearAll()">Clear data</button></div>
+      <div class="srow"><div class="sri"><div class="srt">Export trades</div><div class="srd">Download all data as JSON backup.</div></div><button class="btn btn-g btn-sm" id="btnExport">Export JSON</button></div>
+      <div class="srow"><div class="sri"><div class="srt">Import trades</div><div class="srd">Restore from a previously exported JSON file.</div></div><div><input type="file" id="ifile" accept=".json" style="display:none"/><button class="btn btn-g btn-sm" id="btnImport">Import JSON</button></div></div>
+      <div class="srow"><div class="sri"><div class="srt">Clear all data</div><div class="srd" style="color:var(--red)">Permanently deletes all trades.</div></div><button class="btn btn-g btn-sm" style="color:var(--red);border-color:var(--red-dim)" id="btnClear">Clear data</button></div>
     </div>
   </div></div>
 </div>
@@ -321,7 +339,10 @@ tbody tr:hover td{background:rgba(128,128,128,.04);}
     <h3>Close trade lot</h3>
     <div class="field"><label>Exit price per share ($)</label><input type="number" id="mep" placeholder="175.00" step="any" min="0.0001"/></div>
     <div class="field"><label>Exit date</label><input type="date" id="med"/></div>
-    <div class="mf"><button class="btn btn-g" onclick="hm('mclose')">Cancel</button><button class="btn btn-p" onclick="confirmClose()">Confirm close</button></div>
+    <div class="mf">
+      <button class="btn btn-g" id="btnCancelClose">Cancel</button>
+      <button class="btn btn-p" id="btnConfirmClose">Confirm close</button>
+    </div>
   </div>
 </div>
 
@@ -330,363 +351,731 @@ tbody tr:hover td{background:rgba(128,128,128,.04);}
   <div class="modal">
     <h3 id="ntitle">Notes history</h3>
     <div class="nt" id="ntcontent"></div>
-    <div class="nadd"><textarea id="ntxt" placeholder="Add a note about this trade..." rows="2"></textarea><button class="btn btn-p btn-sm" onclick="addNote()" style="align-self:flex-end">Add</button></div>
-    <div class="mf"><button class="btn btn-g" onclick="hm('mnotes')">Close</button></div>
+    <div class="nadd">
+      <textarea id="ntxt" placeholder="Add a note about this trade..." rows="2"></textarea>
+      <button class="btn btn-p btn-sm" id="btnAddNote" style="align-self:flex-end">Add</button>
+    </div>
+    <div class="mf"><button class="btn btn-g" id="btnCloseNotes">Close</button></div>
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
-var T=JSON.parse(localStorage.getItem('tj_t')||'[]');
-var P=JSON.parse(localStorage.getItem('tj_p')||'{}');
-var H=JSON.parse(localStorage.getItem('tj_h')||'{}');
-var K=localStorage.getItem('tj_k')||'';
-var LC=T.length?Math.max.apply(null,T.map(function(t){return t.id;}))+1:1;
-var CID=null,NID=null,CH={};
+// ── State ──────────────────────────────────────────────────────────────────
+var T = JSON.parse(localStorage.getItem('tj_t') || '[]');
+var P = JSON.parse(localStorage.getItem('tj_p') || '{}');
+var H = JSON.parse(localStorage.getItem('tj_h') || '{}');
+var K = localStorage.getItem('tj_k') || '';
+var LC = T.length ? Math.max.apply(null, T.map(function(t){ return t.id; })) + 1 : 1;
+var CID = null, NID = null, CH = {};
 
-document.getElementById('fd').value=td();
-document.getElementById('med').value=td();
-if(K)document.getElementById('sapikey').value=K;
-var TH=localStorage.getItem('tj_theme')||'dark';
-document.documentElement.setAttribute('data-theme',TH);
-utl();uas();ra();ptt();
+// ── Init ───────────────────────────────────────────────────────────────────
+document.getElementById('fd').value = today();
+document.getElementById('med').value = today();
+if (K) document.getElementById('sapikey').value = K;
+var TH = localStorage.getItem('tj_theme') || 'dark';
+document.documentElement.setAttribute('data-theme', TH);
+updateThemeLabel();
+updateApiStatus();
+renderAll();
+populateTimelineTicker();
+populateReportTicker();
 
-function td(){return new Date().toISOString().slice(0,10);}
-function db(d1,d2){return Math.round((new Date(d2)-new Date(d1))/86400000);}
-function sv(){localStorage.setItem('tj_t',JSON.stringify(T));localStorage.setItem('tj_p',JSON.stringify(P));localStorage.setItem('tj_h',JSON.stringify(H));}
-function f$(v,s){return(v<0?'-$':(s?'+$':'$'))+Math.abs(v).toFixed(2);}
-function fp(v){return(v>=0?'+':'')+v.toFixed(2)+'%';}
-function fc(v){return v>0?'pos':v<0?'neg':'neu';}
-function pnl(t){if(t.action!=='BUY')return null;var e=t.status==='CLOSED'?t.ep:(P[t.tk]||t.price);return{g:(e-t.price)*t.sh,p:((e-t.price)/t.price)*100};}
-function ln(t){return T.filter(function(x){return x.tk===t.tk&&x.action==='BUY';}).indexOf(t)+1;}
-function hp(d){if(d<30)return '<span class="hp hfr">'+d+'d</span>';if(d<90)return '<span class="hp hmi">'+d+'d</span>';if(d<180)return '<span class="hp hlo">'+d+'d</span>';return '<span class="hp hvl">'+d+'d!</span>';}
+// ── Navigation (no inline onclick, uses data-page) ─────────────────────────
+document.querySelectorAll('.nav-item').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var id = btn.getAttribute('data-page');
+    showPage(id);
+  });
+});
 
-function toggleTheme(){var c=document.documentElement.getAttribute('data-theme'),n=c==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('tj_theme',n);utl();setTimeout(rc,50);}
-function utl(){document.getElementById('tlabel').textContent=document.documentElement.getAttribute('data-theme')==='dark'?'Light mode':'Dark mode';}
-function sp(id){
-  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
-  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
-  document.getElementById('page-'+id).classList.add('active');
-  document.querySelector('.nav-item[onclick="sp(''+id+'')"]').classList.add('active');
-  ra();
-  if(id==='timeline'){ptt();renderTimeline();}
-  if(id==='holding')rh();
-  if(id==='report'){prpt();renderReport();}
-}
-function hm(id){document.getElementById(id).classList.remove('open');}
-function uas(){var d=document.getElementById('sdot'),t=document.getElementById('stxt');if(K){d.classList.add('on');t.textContent='Finnhub connected';}else{d.classList.remove('on');t.textContent='No API key';}}
-function saveKey(){K=document.getElementById('sapikey').value.trim();localStorage.setItem('tj_k',K);uas();alert('API key saved.');}
-async function testKey(){if(!K)return alert('Enter an API key in Settings first.');try{var r=await fetch('https://finnhub.io/api/v1/quote?symbol=AAPL&token='+K),d=await r.json();alert(d.c&&d.c>0?'Connected! AAPL: $'+d.c.toFixed(2):'Key invalid or rate limited.');}catch(e){alert('Connection failed: '+e.message);}}
-async function fp2(tk){if(!K)return null;try{var r=await fetch('https://finnhub.io/api/v1/quote?symbol='+tk+'&token='+K),d=await r.json();return(d.c&&d.c>0)?d.c:null;}catch{return null;}}
-async function fcan(tk,from,to){if(!K)return null;try{var r=await fetch('https://finnhub.io/api/v1/stock/candle?symbol='+tk+'&resolution=W&from='+from+'&to='+to+'&token='+K),d=await r.json();return d.s==='ok'?d:null;}catch{return null;}}
-async function refreshPrices(){
-  if(!K){alert('Add a Finnhub API key in Settings first.');return;}
-  var tks=[...new Set(T.filter(function(t){return t.action==='BUY'&&t.status==='OPEN';}).map(function(t){return t.tk;}))];
-  if(!tks.length)return;
-  for(var i=0;i<tks.length;i++){var p=await fp2(tks[i]);if(p)P[tks[i]]=p;await new Promise(function(r){setTimeout(r,300);});}
-  sv();document.getElementById('lrefresh').textContent='Updated '+new Date().toLocaleTimeString();ra();
-}
-async function fetchAndTimeline(){await refreshPrices();var tk=document.getElementById('tticker').value;if(tk)await lth(tk);renderTimeline();}
-
-function addTrade(){
-  var tk=document.getElementById('ft').value.trim().toUpperCase();
-  var ac=document.getElementById('fa').value;
-  var sh=parseFloat(document.getElementById('fs').value);
-  var pr=parseFloat(document.getElementById('fp').value);
-  var dt=document.getElementById('fd').value;
-  var nt=document.getElementById('fn').value.trim();
-  var er=document.getElementById('ferr');
-  if(!tk){er.textContent='Ticker required';er.style.display='inline';return;}
-  if(!sh||sh<=0){er.textContent='Enter valid share count';er.style.display='inline';return;}
-  if(!pr||pr<=0){er.textContent='Enter valid price';er.style.display='inline';return;}
-  if(!dt){er.textContent='Select a date';er.style.display='inline';return;}
-  er.style.display='none';
-  var notes=nt?[{date:dt,text:nt}]:[];
-  T.push({id:LC++,tk:tk,action:ac,sh:sh,price:pr,date:dt,notes:notes,status:'OPEN',ep:null,ed:null});
-  if(!(tk in P))P[tk]=pr;
-  sv();
-  document.getElementById('ft').value='';document.getElementById('fs').value='';document.getElementById('fp').value='';document.getElementById('fn').value='';document.getElementById('fd').value=td();
-  ra();ptt();
-}
-function del(id){if(!confirm('Delete this trade lot?'))return;T=T.filter(function(t){return t.id!==id;});sv();ra();}
-function ocm(id){CID=id;document.getElementById('mep').value='';document.getElementById('med').value=td();document.getElementById('mclose').classList.add('open');}
-function confirmClose(){var ep=parseFloat(document.getElementById('mep').value),ed=document.getElementById('med').value;if(!ep||ep<=0||!ed)return;var t=T.find(function(t){return t.id===CID;});if(t){t.status='CLOSED';t.ep=ep;t.ed=ed;}hm('mclose');sv();ra();}
-function onm(id){NID=id;var t=T.find(function(t){return t.id===id;});if(!t)return;document.getElementById('ntitle').textContent='Notes — '+t.tk+' Lot '+ln(t);document.getElementById('ntxt').value='';rnt(t);document.getElementById('mnotes').classList.add('open');}
-function rnt(t){var ns=t.notes||[],c=document.getElementById('ntcontent');if(!ns.length){c.innerHTML='<div style="color:var(--muted);font-size:13px;padding:12px 0">No notes yet. Add your first note below.</div>';return;}c.innerHTML=ns.map(function(n,i){return '<div class="ne"><div class="nd"></div><div class="nc"><div class="ndate">'+n.date+'</div><div class="ntxt">'+n.text+'</div></div><button class="btn-x" onclick="dn('+t.id+','+i+')">✕</button></div>';}).join('');}
-function addNote(){var tx=document.getElementById('ntxt').value.trim();if(!tx)return;var t=T.find(function(t){return t.id===NID;});if(!t)return;if(!t.notes)t.notes=[];t.notes.push({date:td(),text:tx});document.getElementById('ntxt').value='';sv();rnt(t);ra();}
-function dn(tid,idx){var t=T.find(function(t){return t.id===tid;});if(!t)return;t.notes.splice(idx,1);sv();rnt(t);}
-
-function orow(t){
-  var pl=pnl(t),cur=P[t.tk]||t.price,cost=t.price*t.sh,mv=cur*t.sh,days=db(t.date,td()),live=!!P[t.tk],nc=(t.notes||[]).length;
-  var cd=live?'<span class="pl"><span class="ld"></span>$'+cur.toFixed(2)+'</span>':'<span class="neu">$'+cur.toFixed(2)+'</span>';
-  return '<tr><td class="tk">'+t.tk+'</td><td class="tl">Lot '+ln(t)+'</td><td class="tm neu">'+t.date+'</td><td class="tm">'+t.sh+'</td><td class="tm">$'+t.price.toFixed(2)+'</td><td>'+cd+'</td><td class="tm">$'+cost.toFixed(2)+'</td><td class="tm">$'+mv.toFixed(2)+'</td><td class="tm '+fc(pl.g)+'">'+f$(pl.g,true)+'</td><td class="tm '+fc(pl.p)+'">'+fp(pl.p)+'</td><td>'+hp(days)+'</td><td><button class="btn-note" onclick="onm('+t.id+')">'+(nc?'&#128221; '+nc:'+ note')+'</button></td><td style="display:flex;gap:4px;align-items:center;white-space:nowrap"><button class="btn-close" onclick="ocm('+t.id+')">Close</button><button class="btn-x" onclick="del('+t.id+')">✕</button></td></tr>';
-}
-function rot(tid){var open=T.filter(function(t){return t.action==='BUY'&&t.status==='OPEN';}),b=document.getElementById(tid);if(!b)return;if(!open.length){b.innerHTML='<tr><td colspan="13"><div class="empty"><div class="empty-icon">&#128202;</div><div class="empty-text">No open positions yet</div></div></td></tr>';return;}b.innerHTML=open.map(orow).join('');}
-function rct(){var cl=T.filter(function(t){return t.action==='BUY'&&t.status==='CLOSED';}),b=document.getElementById('cb');if(!b)return;if(!cl.length){b.innerHTML='<tr><td colspan="12"><div class="empty"><div class="empty-icon">&#127937;</div><div class="empty-text">No closed trades yet</div></div></td></tr>';return;}b.innerHTML=cl.map(function(t){var pl=pnl(t),days=db(t.date,t.ed),nc=(t.notes||[]).length;return '<tr><td class="tk">'+t.tk+'</td><td class="tl">Lot '+ln(t)+'</td><td class="tm neu">'+t.date+'</td><td class="tm neu">'+t.ed+'</td><td class="tm">'+t.sh+'</td><td class="tm">$'+t.price.toFixed(2)+'</td><td class="tm">$'+t.ep.toFixed(2)+'</td><td class="tm '+fc(pl.g)+'">'+f$(pl.g,true)+'</td><td class="tm '+fc(pl.p)+'">'+fp(pl.p)+'</td><td>'+hp(days)+'</td><td><button class="btn-note" onclick="onm('+t.id+')">'+(nc?'&#128221; '+nc:'+ note')+'</button></td><td><button class="btn-x" onclick="del('+t.id+')">✕</button></td></tr>';}).join('');}
-function rre(){var b=document.getElementById('rb');if(!b)return;var r=[].concat(T).reverse().slice(0,10);if(!r.length){b.innerHTML='<tr><td colspan="7"><div class="empty"><div class="empty-text">No trades yet</div></div></td></tr>';return;}b.innerHTML=r.map(function(t){var n0=(t.notes||[]).length?t.notes[0].text:'&mdash;';return '<tr><td class="tk">'+t.tk+'</td><td><span class="badge bo">'+t.action+'</span></td><td class="tm neu">'+t.date+'</td><td class="tm">'+t.sh+'</td><td class="tm">$'+t.price.toFixed(2)+'</td><td style="color:var(--muted);font-size:12px">'+n0+'</td><td><button class="btn-x" onclick="del('+t.id+')">✕</button></td></tr>';}).join('');}
-function rlg(){var b=document.getElementById('lgb');if(!b)return;var buys=T.filter(function(t){return t.action==='BUY';});if(!buys.length){b.innerHTML='<tr><td colspan="8"><div class="empty"><div class="empty-text">No trades yet</div></div></td></tr>';return;}b.innerHTML=buys.map(function(t){var pl=pnl(t),bg=t.status==='OPEN'?'<span class="badge bo">Open</span>':'<span class="badge bc">Closed</span>';return '<tr><td class="tk">'+t.tk+'</td><td class="tl">Lot '+ln(t)+'</td><td class="tm neu">'+t.date+'</td><td>'+bg+'</td><td class="tm">'+t.sh+'</td><td class="tm">$'+t.price.toFixed(2)+'</td><td class="tm '+fc(pl.g)+'">'+f$(pl.g,true)+'</td><td class="tm '+fc(pl.p)+'">'+fp(pl.p)+'</td></tr>';}).join('');}
-function rm(id){var op=T.filter(function(t){return t.action==='BUY'&&t.status==='OPEN';}),cl=T.filter(function(t){return t.action==='BUY'&&t.status==='CLOSED';}),ur=0,re=0;op.forEach(function(t){var p=pnl(t);if(p)ur+=p.g;});cl.forEach(function(t){var p=pnl(t);if(p)re+=p.g;});var cost=op.reduce(function(s,t){return s+t.price*t.sh;},0),mkt=op.reduce(function(s,t){return s+(P[t.tk]||t.price)*t.sh;},0),tks=new Set(op.map(function(t){return t.tk;})).size,el=document.getElementById(id);if(!el)return;el.innerHTML='<div class="metric"><div class="metric-label">Open lots</div><div class="metric-value">'+op.length+'</div></div><div class="metric"><div class="metric-label">Tickers</div><div class="metric-value">'+tks+'</div></div><div class="metric"><div class="metric-label">Total invested</div><div class="metric-value">$'+cost.toFixed(2)+'</div></div><div class="metric"><div class="metric-label">Market value</div><div class="metric-value">$'+mkt.toFixed(2)+'</div></div><div class="metric"><div class="metric-label">Unrealized P&L</div><div class="metric-value '+fc(ur)+'">'+f$(ur,true)+'</div></div><div class="metric"><div class="metric-label">Realized P&L</div><div class="metric-value '+fc(re)+'">'+f$(re,true)+'</div></div>';}
-
-function rh(){
-  var op=T.filter(function(t){return t.action==='BUY'&&t.status==='OPEN';}),gr={fr:[],mi:[],lo:[],vl:[]};
-  op.forEach(function(t){var d=db(t.date,td());if(d<30)gr.fr.push({t:t,d:d});else if(d<90)gr.mi.push({t:t,d:d});else if(d<180)gr.lo.push({t:t,d:d});else gr.vl.push({t:t,d:d});});
-  document.getElementById('hsummary').innerHTML='<div class="hcard"><div class="hclabel">Under 30 days</div><div class="hcval" style="color:var(--accent)">'+gr.fr.length+'</div><div class="hcsub">Fresh positions</div></div><div class="hcard"><div class="hclabel">30&ndash;90 days</div><div class="hcval" style="color:var(--blue)">'+gr.mi.length+'</div><div class="hcsub">Mid-term</div></div><div class="hcard"><div class="hclabel">90&ndash;180 days</div><div class="hcval" style="color:var(--amber)">'+gr.lo.length+'</div><div class="hcsub">Review thesis</div></div><div class="hcard"><div class="hclabel">180+ days</div><div class="hcval" style="color:var(--red)">'+gr.vl.length+'</div><div class="hcsub">Long-term or stale</div></div>';
-  var lbs=[{k:'vl',l:'180+ days &mdash; long-term / stale',c:'var(--red)'},{k:'lo',l:'90&ndash;180 days &mdash; review your thesis',c:'var(--amber)'},{k:'mi',l:'30&ndash;90 days &mdash; mid-term',c:'var(--blue)'},{k:'fr',l:'Under 30 days &mdash; fresh',c:'var(--accent)'}];
-  var con=document.getElementById('hgroups');con.innerHTML='';
-  lbs.forEach(function(lb){var items=gr[lb.k];if(!items.length)return;var card=document.createElement('div');card.className='card';card.innerHTML='<div class="card-header"><span class="card-title" style="color:'+lb.c+'">'+lb.l+'</span></div><div class="tw"><table><thead><tr><th>Ticker</th><th>Lot</th><th>Entry date</th><th>Shares</th><th>Entry $</th><th>Current $</th><th>P&L $</th><th>P&L %</th><th>Days held</th><th>Notes</th></tr></thead><tbody>'+items.map(function(it){var t=it.t,d=it.d,pl=pnl(t),cur=P[t.tk]||t.price,nc=(t.notes||[]).length;return '<tr><td class="tk">'+t.tk+'</td><td class="tl">Lot '+ln(t)+'</td><td class="tm neu">'+t.date+'</td><td class="tm">'+t.sh+'</td><td class="tm">$'+t.price.toFixed(2)+'</td><td class="tm">$'+cur.toFixed(2)+'</td><td class="tm '+fc(pl.g)+'">'+f$(pl.g,true)+'</td><td class="tm '+fc(pl.p)+'">'+fp(pl.p)+'</td><td>'+hp(d)+'</td><td><button class="btn-note" onclick="onm('+t.id+')">'+(nc?'&#128221; '+nc:'+ note')+'</button></td></tr>';}).join('')+'</tbody></table></div>';con.appendChild(card);});
-  if(!op.length)con.innerHTML='<div class="empty"><div class="empty-icon">&#9201;</div><div class="empty-text">No open positions to analyze</div></div>';
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+  var page = document.getElementById('page-' + id);
+  if (page) page.classList.add('active');
+  var btn = document.querySelector('.nav-item[data-page="' + id + '"]');
+  if (btn) btn.classList.add('active');
+  renderAll();
+  if (id === 'timeline') { populateTimelineTicker(); renderTimeline(); }
+  if (id === 'holding') renderHolding();
+  if (id === 'report') { populateReportTicker(); renderReport(); }
 }
 
-function ptt(){var sel=document.getElementById('tticker'),cur=sel.value,tks=[...new Set(T.filter(function(t){return t.action==='BUY';}).map(function(t){return t.tk;}))];sel.innerHTML='<option value="">Select ticker&hellip;</option>'+tks.map(function(tk){return '<option value="'+tk+'"'+(tk===cur?' selected':'')+'>'+tk+'</option>';}).join('');}
-async function lth(tk){if(!K)return;var to=Math.floor(Date.now()/1000),dates=T.filter(function(t){return t.tk===tk&&t.action==='BUY';}).map(function(t){return new Date(t.date).getTime()/1000;}).sort(function(a,b){return a-b;}),from=dates.length?Math.floor(dates[0])-86400*30:to-86400*365,data=await fcan(tk,from,to);if(data){H[tk]={t:data.t,c:data.c};sv();}}
-function renderTimeline(){
-  var tk=document.getElementById('tticker').value,canvas=document.getElementById('ctl');
-  if(CH['tl']){CH['tl'].destroy();delete CH['tl'];}
-  document.getElementById('tlt').style.display='none';
-  if(!tk){canvas.style.display='none';return;}
-  canvas.style.display='block';
-  var hist=H[tk],lots=T.filter(function(t){return t.tk===tk&&t.action==='BUY';}),dark=document.documentElement.getAttribute('data-theme')==='dark',gc=dark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.07)',tc=dark?'#6b7280':'#9ca3af',cols=['#4ade80','#60a5fa','#fbbf24','#f87171','#a78bfa'];
-  if(!hist||!hist.t){
-    if(!lots.length)return;
-    CH['tl']=new Chart(canvas,{type:'scatter',data:{datasets:lots.map(function(t,i){return{label:'Lot '+ln(t)+' @ $'+t.price.toFixed(2),data:[{x:t.date,y:t.price}],backgroundColor:cols[i%5],pointRadius:10,pointHoverRadius:13,showLine:false};})},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:tc,font:{family:'DM Mono',size:11}}},tooltip:{callbacks:{label:function(ctx){return ctx.dataset.label;}}}},scales:{x:{type:'time',time:{unit:'month'},grid:{color:gc},ticks:{color:tc}},y:{grid:{color:gc},ticks:{color:tc,callback:function(v){return'$'+v.toFixed(0);}}}}}});
-  } else {
-    var labels=hist.t.map(function(ts){return new Date(ts*1000).toISOString().slice(0,10);}),ds=[{label:tk+' price',data:hist.c,borderColor:dark?'rgba(255,255,255,0.35)':'rgba(0,0,0,0.2)',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:0.3,order:1}];
-    lots.forEach(function(t,i){var cl=labels.reduce(function(b,l){return Math.abs(new Date(l)-new Date(t.date))<Math.abs(new Date(b)-new Date(t.date))?l:b;},labels[0]),idx=labels.indexOf(cl),sp=new Array(hist.c.length).fill(null);sp[idx]=t.price;ds.push({label:'Lot '+ln(t)+' ($'+t.price.toFixed(2)+')',data:sp,backgroundColor:cols[i%5],borderColor:cols[i%5],pointRadius:9,pointHoverRadius:12,showLine:false,order:0});});
-    CH['tl']=new Chart(canvas,{type:'line',data:{labels:labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:tc,font:{family:'DM Mono',size:11},filter:function(i){return i.text!==tk+' price';}}},tooltip:{callbacks:{label:function(ctx){return ctx.dataset.label+': $'+(ctx.raw||0).toFixed(2);}}}},scales:{x:{grid:{color:gc},ticks:{color:tc,maxTicksLimit:8,font:{family:'DM Mono',size:10}}},y:{grid:{color:gc},ticks:{color:tc,callback:function(v){return'$'+v.toFixed(0);},font:{family:'DM Mono',size:10}}}}}});
+// ── Button event listeners (no inline onclick) ─────────────────────────────
+document.getElementById('btnRefreshDash').addEventListener('click', refreshPrices);
+document.getElementById('btnRefreshOpen').addEventListener('click', refreshPrices);
+document.getElementById('btnAddTrade').addEventListener('click', addTrade);
+document.getElementById('btnFetchTimeline').addEventListener('click', fetchAndTimeline);
+document.getElementById('btnSaveKey').addEventListener('click', saveKey);
+document.getElementById('btnTestKey').addEventListener('click', testKey);
+document.getElementById('btnExport').addEventListener('click', exportData);
+document.getElementById('btnImport').addEventListener('click', function() { document.getElementById('ifile').click(); });
+document.getElementById('ifile').addEventListener('change', importData);
+document.getElementById('btnClear').addEventListener('click', clearAll);
+document.getElementById('btnCancelClose').addEventListener('click', function() { hideModal('mclose'); });
+document.getElementById('btnConfirmClose').addEventListener('click', confirmClose);
+document.getElementById('btnCloseNotes').addEventListener('click', function() { hideModal('mnotes'); });
+document.getElementById('btnAddNote').addEventListener('click', addNote);
+document.getElementById('themeBtn').addEventListener('click', toggleTheme);
+document.getElementById('tticker').addEventListener('change', renderTimeline);
+document.getElementById('rp-ticker').addEventListener('change', renderReport);
+document.getElementById('rp-range').addEventListener('change', renderReport);
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function today() { return new Date().toISOString().slice(0, 10); }
+function daysBetween(d1, d2) { return Math.round((new Date(d2) - new Date(d1)) / 86400000); }
+function save() {
+  localStorage.setItem('tj_t', JSON.stringify(T));
+  localStorage.setItem('tj_p', JSON.stringify(P));
+  localStorage.setItem('tj_h', JSON.stringify(H));
+}
+function fmtDollar(v, sign) { return (v < 0 ? '-$' : (sign ? '+$' : '$')) + Math.abs(v).toFixed(2); }
+function fmtPct(v) { return (v >= 0 ? '+' : '') + v.toFixed(2) + '%'; }
+function colorClass(v) { return v > 0 ? 'pos' : v < 0 ? 'neg' : 'neu'; }
+function pnl(t) {
+  if (t.action !== 'BUY') return null;
+  var e = t.status === 'CLOSED' ? t.ep : (P[t.tk] || t.price);
+  return { g: (e - t.price) * t.sh, p: ((e - t.price) / t.price) * 100 };
+}
+function lotNum(t) { return T.filter(function(x) { return x.tk === t.tk && x.action === 'BUY'; }).indexOf(t) + 1; }
+function heldBadge(d) {
+  if (d < 30) return '<span class="hp hfr">' + d + 'd</span>';
+  if (d < 90) return '<span class="hp hmi">' + d + 'd</span>';
+  if (d < 180) return '<span class="hp hlo">' + d + 'd</span>';
+  return '<span class="hp hvl">' + d + 'd!</span>';
+}
+function hideModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ── Theme ──────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  var cur = document.documentElement.getAttribute('data-theme');
+  var next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('tj_theme', next);
+  updateThemeLabel();
+  setTimeout(renderCharts, 50);
+}
+function updateThemeLabel() {
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.getElementById('tlabel').textContent = isDark ? 'Light mode' : 'Dark mode';
+}
+
+// ── API ────────────────────────────────────────────────────────────────────
+function updateApiStatus() {
+  var dot = document.getElementById('sdot');
+  var txt = document.getElementById('stxt');
+  if (K) { dot.classList.add('on'); txt.textContent = 'Finnhub connected'; }
+  else { dot.classList.remove('on'); txt.textContent = 'No API key'; }
+}
+function saveKey() {
+  K = document.getElementById('sapikey').value.trim();
+  localStorage.setItem('tj_k', K);
+  updateApiStatus();
+  alert('API key saved.');
+}
+async function testKey() {
+  if (!K) return alert('Enter an API key in Settings first.');
+  try {
+    var r = await fetch('https://finnhub.io/api/v1/quote?symbol=AAPL&token=' + K);
+    var d = await r.json();
+    alert(d.c && d.c > 0 ? 'Connected! AAPL: $' + d.c.toFixed(2) : 'Key invalid or rate limited.');
+  } catch(e) { alert('Connection failed: ' + e.message); }
+}
+async function fetchQuote(tk) {
+  if (!K) return null;
+  try {
+    var r = await fetch('https://finnhub.io/api/v1/quote?symbol=' + tk + '&token=' + K);
+    var d = await r.json();
+    return (d.c && d.c > 0) ? d.c : null;
+  } catch { return null; }
+}
+async function fetchCandles(tk, from, to) {
+  if (!K) return null;
+  try {
+    var r = await fetch('https://finnhub.io/api/v1/stock/candle?symbol=' + tk + '&resolution=W&from=' + from + '&to=' + to + '&token=' + K);
+    var d = await r.json();
+    return d.s === 'ok' ? d : null;
+  } catch { return null; }
+}
+async function refreshPrices() {
+  if (!K) { alert('Add a Finnhub API key in Settings first.'); return; }
+  var tks = [...new Set(T.filter(function(t) { return t.action === 'BUY' && t.status === 'OPEN'; }).map(function(t) { return t.tk; }))];
+  if (!tks.length) return;
+  for (var i = 0; i < tks.length; i++) {
+    var p = await fetchQuote(tks[i]);
+    if (p) P[tks[i]] = p;
+    await new Promise(function(r) { setTimeout(r, 300); });
   }
-  document.getElementById('tlttitle').textContent='Lots for '+tk;
-  document.getElementById('tlb').innerHTML=lots.map(function(t){var pl=pnl(t),bg=t.status==='OPEN'?'<span class="badge bo">Open</span>':'<span class="badge bc">Closed</span>';return '<tr><td class="tl">Lot '+ln(t)+'</td><td class="tm neu">'+t.date+'</td><td class="tm">'+t.sh+'</td><td class="tm">$'+t.price.toFixed(2)+'</td><td class="tm">'+(P[tk]?'$'+P[tk].toFixed(2):'&mdash;')+'</td><td class="tm '+fc(pl.g)+'">'+f$(pl.g,true)+'</td><td class="tm '+fc(pl.p)+'">'+fp(pl.p)+'</td><td>'+bg+'</td></tr>';}).join('');
-  document.getElementById('tlt').style.display=lots.length?'block':'none';
+  save();
+  document.getElementById('lrefresh').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  renderAll();
 }
-
-function dc(id){if(CH[id]){CH[id].destroy();delete CH[id];}}
-function rc(){
-  var buys=T.filter(function(t){return t.action==='BUY';});if(!buys.length)return;
-  var dark=document.documentElement.getAttribute('data-theme')==='dark',gc=dark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.07)',tc=dark?'#6b7280':'#9ca3af';
-  var tks=[...new Set(buys.map(function(t){return t.tk;}))];
-  var rp=tks.map(function(tk){return buys.filter(function(t){return t.tk===tk&&t.status==='CLOSED';}).reduce(function(s,t){return s+pnl(t).g;},0);});
-  var up=tks.map(function(tk){return buys.filter(function(t){return t.tk===tk&&t.status==='OPEN';}).reduce(function(s,t){return s+pnl(t).g;},0);});
-  ['cpnl','capnl'].forEach(function(id){var cv=document.getElementById(id);if(!cv)return;dc(id);CH[id]=new Chart(cv,{type:'bar',data:{labels:tks,datasets:[{label:'Realized',data:rp,backgroundColor:rp.map(function(v){return v>=0?'#4ade80':'#f87171';}),borderRadius:4},{label:'Unrealized',data:up,backgroundColor:up.map(function(v){return v>=0?'rgba(74,222,128,0.4)':'rgba(248,113,113,0.4)';}),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ctx.dataset.label+': '+f$(ctx.raw,true);}}}},scales:{x:{grid:{color:gc},ticks:{color:tc,font:{family:'DM Mono'}}},y:{grid:{color:gc},ticks:{color:tc,font:{family:'DM Mono'},callback:function(v){return f$(v);}}}}}});});
-  var ac=document.getElementById('calloc');if(ac){dc('calloc');var op=T.filter(function(t){return t.action==='BUY'&&t.status==='OPEN';});if(op.length){var at=[...new Set(op.map(function(t){return t.tk;}))],av=at.map(function(tk){return op.filter(function(t){return t.tk===tk;}).reduce(function(s,t){return s+(P[t.tk]||t.price)*t.sh;},0);}),cols=['#4ade80','#60a5fa','#fbbf24','#f87171','#a78bfa','#34d399','#fb923c'];CH['calloc']=new Chart(ac,{type:'doughnut',data:{labels:at,datasets:[{data:av,backgroundColor:cols.slice(0,at.length),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{position:'right',labels:{color:tc,font:{family:'DM Mono',size:11},boxWidth:10,padding:12}},tooltip:{callbacks:{label:function(ctx){return ctx.label+': $'+ctx.raw.toFixed(2);}}}}}});}}
-  var wl=document.getElementById('cwl');if(wl){dc('cwl');var acl=T.filter(function(t){return t.action==='BUY'&&t.status==='CLOSED';}),wins=acl.filter(function(t){return pnl(t).g>0;}).length,loss=acl.filter(function(t){return pnl(t).g<=0;}).length;if(wins+loss>0)CH['cwl']=new Chart(wl,{type:'doughnut',data:{labels:['Wins','Losses'],datasets:[{data:[wins,loss],backgroundColor:['#4ade80','#f87171'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{position:'right',labels:{color:tc,font:{family:'DM Mono',size:11},boxWidth:10,padding:12}}}}});}
-}
-function ra(){rm('dm');rm('am');rot('dob');rot('ob');rct();rre();rlg();rc();prpt();}
-
-// ── REPORT PAGE ─────────────────────────────────────────────────────────────
-
-// Populate the ticker filter dropdown
-function prpt(){
-  var sel=document.getElementById('rp-ticker');
-  if(!sel)return;
-  var cur=sel.value;
-  var tks=[...new Set(T.filter(function(t){return t.action==='BUY';}).map(function(t){return t.tk;}))].sort();
-  sel.innerHTML='<option value="">All stocks</option>'+tks.map(function(tk){return '<option value="'+tk+'"'+(tk===cur?' selected':'')+'>'+tk+'</option>';}).join('');
-}
-
-// Build a sorted list of all relevant dates (entry + exit + today)
-function rpDates(trades, rangeKey){
-  var all=new Set();
-  trades.forEach(function(t){
-    all.add(t.date);
-    if(t.status==='CLOSED'&&t.ed) all.add(t.ed);
-  });
-  all.add(td());
-  var sorted=[...all].sort();
-  if(!sorted.length) return sorted;
-  var cutoff=null, now=new Date();
-  if(rangeKey==='1m') cutoff=new Date(now.getFullYear(),now.getMonth()-1,now.getDate());
-  else if(rangeKey==='3m') cutoff=new Date(now.getFullYear(),now.getMonth()-3,now.getDate());
-  else if(rangeKey==='6m') cutoff=new Date(now.getFullYear(),now.getMonth()-6,now.getDate());
-  else if(rangeKey==='1y') cutoff=new Date(now.getFullYear()-1,now.getMonth(),now.getDate());
-  if(cutoff){
-    var cs=cutoff.toISOString().slice(0,10);
-    sorted=sorted.filter(function(d){return d>=cs;});
-    if(!sorted.length||sorted[0]>cs) sorted.unshift(cs);
+async function fetchAndTimeline() {
+  await refreshPrices();
+  var tk = document.getElementById('tticker').value;
+  if (tk && K) {
+    var to = Math.floor(Date.now() / 1000);
+    var dates = T.filter(function(t) { return t.tk === tk && t.action === 'BUY'; }).map(function(t) { return new Date(t.date).getTime() / 1000; }).sort(function(a,b){ return a-b; });
+    var from = dates.length ? Math.floor(dates[0]) - 86400*30 : to - 86400*365;
+    var data = await fetchCandles(tk, from, to);
+    if (data) { H[tk] = { t: data.t, c: data.c }; save(); }
   }
-  return sorted;
+  renderTimeline();
 }
 
-// For a given date, compute portfolio snapshot for a set of trades
-function rpSnapshot(date, trades){
-  var cost=0, value=0, unrealPnl=0, openLots=0;
-  trades.forEach(function(t){
-    if(t.action!=='BUY') return;
-    var entryDate=t.date, exitDate=t.status==='CLOSED'?t.ed:null;
-    if(entryDate>date) return; // not opened yet
-    if(exitDate && exitDate<date) return; // already closed before this date
-    openLots++;
-    var lotCost=t.price*t.sh;
-    cost+=lotCost;
-    // use exit price if closed on/before this date, else current price or entry
-    var cur=(exitDate&&exitDate<=date)?t.ep:(P[t.tk]||t.price);
-    value+=cur*t.sh;
-    unrealPnl+=(cur-t.price)*t.sh;
+// ── Trade actions ──────────────────────────────────────────────────────────
+function addTrade() {
+  var tk = document.getElementById('ft').value.trim().toUpperCase();
+  var ac = document.getElementById('fa').value;
+  var sh = parseFloat(document.getElementById('fs').value);
+  var pr = parseFloat(document.getElementById('fp2').value);
+  var dt = document.getElementById('fd').value;
+  var nt = document.getElementById('fn').value.trim();
+  var er = document.getElementById('ferr');
+  if (!tk) { er.textContent = 'Ticker required'; er.style.display = 'inline'; return; }
+  if (!sh || sh <= 0) { er.textContent = 'Enter valid share count'; er.style.display = 'inline'; return; }
+  if (!pr || pr <= 0) { er.textContent = 'Enter valid price'; er.style.display = 'inline'; return; }
+  if (!dt) { er.textContent = 'Select a date'; er.style.display = 'inline'; return; }
+  er.style.display = 'none';
+  var notes = nt ? [{ date: dt, text: nt }] : [];
+  T.push({ id: LC++, tk: tk, action: ac, sh: sh, price: pr, date: dt, notes: notes, status: 'OPEN', ep: null, ed: null });
+  if (!(tk in P)) P[tk] = pr;
+  save();
+  document.getElementById('ft').value = '';
+  document.getElementById('fs').value = '';
+  document.getElementById('fp2').value = '';
+  document.getElementById('fn').value = '';
+  document.getElementById('fd').value = today();
+  renderAll();
+  populateTimelineTicker();
+  populateReportTicker();
+}
+function deleteTrade(id) {
+  if (!confirm('Delete this trade lot?')) return;
+  T = T.filter(function(t) { return t.id !== id; });
+  save(); renderAll();
+}
+function openCloseModal(id) {
+  CID = id;
+  document.getElementById('mep').value = '';
+  document.getElementById('med').value = today();
+  document.getElementById('mclose').classList.add('open');
+}
+function confirmClose() {
+  var ep = parseFloat(document.getElementById('mep').value);
+  var ed = document.getElementById('med').value;
+  if (!ep || ep <= 0 || !ed) return;
+  var t = T.find(function(t) { return t.id === CID; });
+  if (t) { t.status = 'CLOSED'; t.ep = ep; t.ed = ed; }
+  hideModal('mclose');
+  save(); renderAll();
+}
+function openNotesModal(id) {
+  NID = id;
+  var t = T.find(function(t) { return t.id === id; });
+  if (!t) return;
+  document.getElementById('ntitle').textContent = 'Notes — ' + t.tk + ' Lot ' + lotNum(t);
+  document.getElementById('ntxt').value = '';
+  renderNotes(t);
+  document.getElementById('mnotes').classList.add('open');
+}
+function renderNotes(t) {
+  var ns = t.notes || [];
+  var c = document.getElementById('ntcontent');
+  if (!ns.length) { c.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">No notes yet.</div>'; return; }
+  c.innerHTML = ns.map(function(n, i) {
+    return '<div class="ne"><div class="nd"></div><div class="nc"><div class="ndate">' + n.date + '</div><div class="ntxt">' + n.text + '</div></div><button class="btn-x" data-tid="' + t.id + '" data-idx="' + i + '">&#x2715;</button></div>';
+  }).join('');
+  c.querySelectorAll('.btn-x').forEach(function(btn) {
+    btn.addEventListener('click', function() { deleteNote(+btn.getAttribute('data-tid'), +btn.getAttribute('data-idx')); });
   });
-  return {cost:cost, value:value, unrealPnl:unrealPnl, openLots:openLots};
+}
+function addNote() {
+  var tx = document.getElementById('ntxt').value.trim();
+  if (!tx) return;
+  var t = T.find(function(t) { return t.id === NID; });
+  if (!t) return;
+  if (!t.notes) t.notes = [];
+  t.notes.push({ date: today(), text: tx });
+  document.getElementById('ntxt').value = '';
+  save(); renderNotes(t);
+}
+function deleteNote(tid, idx) {
+  var t = T.find(function(t) { return t.id === tid; });
+  if (!t) return;
+  t.notes.splice(idx, 1);
+  save(); renderNotes(t);
 }
 
-// Compute cumulative realized P&L up to a given date
-function rpRealizedUpTo(date, trades){
-  return trades.filter(function(t){
-    return t.action==='BUY'&&t.status==='CLOSED'&&t.ed&&t.ed<=date;
-  }).reduce(function(s,t){return s+(t.ep-t.price)*t.sh;},0);
+// ── Render all ─────────────────────────────────────────────────────────────
+function renderAll() {
+  renderMetrics('dm');
+  renderMetrics('am');
+  renderOpenTable('dob');
+  renderOpenTable('ob');
+  renderClosedTable();
+  renderRecentTable();
+  renderLogTable();
+  renderCharts();
 }
 
-function renderReport(){
-  var selTk=document.getElementById('rp-ticker')?document.getElementById('rp-ticker').value:'';
-  var selRange=document.getElementById('rp-range')?document.getElementById('rp-range').value:'all';
-  var dark=document.documentElement.getAttribute('data-theme')==='dark';
-  var gc=dark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.07)';
-  var tc=dark?'#6b7280':'#9ca3af';
+// ── Metrics ────────────────────────────────────────────────────────────────
+function renderMetrics(id) {
+  var op = T.filter(function(t) { return t.action === 'BUY' && t.status === 'OPEN'; });
+  var cl = T.filter(function(t) { return t.action === 'BUY' && t.status === 'CLOSED'; });
+  var ur = 0, re = 0;
+  op.forEach(function(t) { var p = pnl(t); if (p) ur += p.g; });
+  cl.forEach(function(t) { var p = pnl(t); if (p) re += p.g; });
+  var cost = op.reduce(function(s,t) { return s + t.price * t.sh; }, 0);
+  var mkt = op.reduce(function(s,t) { return s + (P[t.tk] || t.price) * t.sh; }, 0);
+  var tks = new Set(op.map(function(t) { return t.tk; })).size;
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML =
+    '<div class="metric"><div class="metric-label">Open lots</div><div class="metric-value">' + op.length + '</div></div>' +
+    '<div class="metric"><div class="metric-label">Tickers</div><div class="metric-value">' + tks + '</div></div>' +
+    '<div class="metric"><div class="metric-label">Total invested</div><div class="metric-value">$' + cost.toFixed(2) + '</div></div>' +
+    '<div class="metric"><div class="metric-label">Market value</div><div class="metric-value">$' + mkt.toFixed(2) + '</div></div>' +
+    '<div class="metric"><div class="metric-label">Unrealized P&L</div><div class="metric-value ' + colorClass(ur) + '">' + fmtDollar(ur, true) + '</div></div>' +
+    '<div class="metric"><div class="metric-label">Realized P&L</div><div class="metric-value ' + colorClass(re) + '">' + fmtDollar(re, true) + '</div></div>';
+}
 
-  var buys=T.filter(function(t){return t.action==='BUY';});
-  var filtered=selTk?buys.filter(function(t){return t.tk===selTk;}):buys;
+// ── Open table ─────────────────────────────────────────────────────────────
+function openRow(t) {
+  var pl = pnl(t), cur = P[t.tk] || t.price;
+  var cost = t.price * t.sh, mv = cur * t.sh;
+  var days = daysBetween(t.date, today());
+  var live = !!P[t.tk];
+  var nc = (t.notes || []).length;
+  var curHtml = live ? '<span class="pl"><span class="ld"></span>$' + cur.toFixed(2) + '</span>' : '<span class="neu">$' + cur.toFixed(2) + '</span>';
+  var row = '<tr>' +
+    '<td class="tk">' + t.tk + '</td>' +
+    '<td class="tl">Lot ' + lotNum(t) + '</td>' +
+    '<td class="tm neu">' + t.date + '</td>' +
+    '<td class="tm">' + t.sh + '</td>' +
+    '<td class="tm">$' + t.price.toFixed(2) + '</td>' +
+    '<td>' + curHtml + '</td>' +
+    '<td class="tm">$' + cost.toFixed(2) + '</td>' +
+    '<td class="tm">$' + mv.toFixed(2) + '</td>' +
+    '<td class="tm ' + colorClass(pl.g) + '">' + fmtDollar(pl.g, true) + '</td>' +
+    '<td class="tm ' + colorClass(pl.p) + '">' + fmtPct(pl.p) + '</td>' +
+    '<td>' + heldBadge(days) + '</td>' +
+    '<td><button class="btn-note note-btn" data-id="' + t.id + '">' + (nc ? '&#128221; ' + nc : '+ note') + '</button></td>' +
+    '<td style="display:flex;gap:4px;align-items:center;white-space:nowrap">' +
+      '<button class="btn-close close-btn" data-id="' + t.id + '">Close</button>' +
+      '<button class="btn-x del-btn" data-id="' + t.id + '">&#x2715;</button>' +
+    '</td></tr>';
+  return row;
+}
+function renderOpenTable(tbodyId) {
+  var open = T.filter(function(t) { return t.action === 'BUY' && t.status === 'OPEN'; });
+  var b = document.getElementById(tbodyId);
+  if (!b) return;
+  if (!open.length) { b.innerHTML = '<tr><td colspan="13"><div class="empty"><div class="empty-icon">&#128202;</div><div class="empty-text">No open positions yet</div></div></td></tr>'; return; }
+  b.innerHTML = open.map(openRow).join('');
+  b.querySelectorAll('.note-btn').forEach(function(btn) { btn.addEventListener('click', function() { openNotesModal(+btn.getAttribute('data-id')); }); });
+  b.querySelectorAll('.close-btn').forEach(function(btn) { btn.addEventListener('click', function() { openCloseModal(+btn.getAttribute('data-id')); }); });
+  b.querySelectorAll('.del-btn').forEach(function(btn) { btn.addEventListener('click', function() { deleteTrade(+btn.getAttribute('data-id')); }); });
+}
 
-  // ── Metrics ──
-  var mEl=document.getElementById('rp-metrics');
-  if(!filtered.length){
-    mEl.innerHTML='<div class="metric"><div class="metric-label">No data</div><div class="metric-value neu">—</div></div>';
-    ['rp-chart-main','rp-chart-cumulative','rp-chart-lots'].forEach(function(id){dc(id);});
-    document.getElementById('rp-events-body').innerHTML='<tr><td colspan="9"><div class="rp-empty">No trades match the current filter.</div></td></tr>';
-    return;
-  }
+// ── Closed table ───────────────────────────────────────────────────────────
+function renderClosedTable() {
+  var cl = T.filter(function(t) { return t.action === 'BUY' && t.status === 'CLOSED'; });
+  var b = document.getElementById('cb');
+  if (!b) return;
+  if (!cl.length) { b.innerHTML = '<tr><td colspan="12"><div class="empty"><div class="empty-icon">&#127937;</div><div class="empty-text">No closed trades yet</div></div></td></tr>'; return; }
+  b.innerHTML = cl.map(function(t) {
+    var pl = pnl(t), days = daysBetween(t.date, t.ed), nc = (t.notes || []).length;
+    return '<tr>' +
+      '<td class="tk">' + t.tk + '</td>' +
+      '<td class="tl">Lot ' + lotNum(t) + '</td>' +
+      '<td class="tm neu">' + t.date + '</td>' +
+      '<td class="tm neu">' + t.ed + '</td>' +
+      '<td class="tm">' + t.sh + '</td>' +
+      '<td class="tm">$' + t.price.toFixed(2) + '</td>' +
+      '<td class="tm">$' + t.ep.toFixed(2) + '</td>' +
+      '<td class="tm ' + colorClass(pl.g) + '">' + fmtDollar(pl.g, true) + '</td>' +
+      '<td class="tm ' + colorClass(pl.p) + '">' + fmtPct(pl.p) + '</td>' +
+      '<td>' + heldBadge(days) + '</td>' +
+      '<td><button class="btn-note note-btn" data-id="' + t.id + '">' + (nc ? '&#128221; ' + nc : '+ note') + '</button></td>' +
+      '<td><button class="btn-x del-btn" data-id="' + t.id + '">&#x2715;</button></td>' +
+    '</tr>';
+  }).join('');
+  b.querySelectorAll('.note-btn').forEach(function(btn) { btn.addEventListener('click', function() { openNotesModal(+btn.getAttribute('data-id')); }); });
+  b.querySelectorAll('.del-btn').forEach(function(btn) { btn.addEventListener('click', function() { deleteTrade(+btn.getAttribute('data-id')); }); });
+}
 
-  var totalCost=filtered.reduce(function(s,t){return s+t.price*t.sh;},0);
-  var totalValue=filtered.reduce(function(s,t){var cur=t.status==='CLOSED'?t.ep:(P[t.tk]||t.price);return s+cur*t.sh;},0);
-  var realPnl=filtered.filter(function(t){return t.status==='CLOSED';}).reduce(function(s,t){return s+(t.ep-t.price)*t.sh;},0);
-  var openPnl=filtered.filter(function(t){return t.status==='OPEN';}).reduce(function(s,t){var cur=P[t.tk]||t.price;return s+(cur-t.price)*t.sh;},0);
-  var bestTrade=null,worstTrade=null;
-  filtered.forEach(function(t){
-    var g=pnl(t).p;
-    if(bestTrade===null||g>pnl(bestTrade).p) bestTrade=t;
-    if(worstTrade===null||g<pnl(worstTrade).p) worstTrade=t;
-  });
-  var totalPnl=realPnl+openPnl;
+// ── Recent table ───────────────────────────────────────────────────────────
+function renderRecentTable() {
+  var b = document.getElementById('rb');
+  if (!b) return;
+  var r = [].concat(T).reverse().slice(0, 10);
+  if (!r.length) { b.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="empty-text">No trades yet</div></div></td></tr>'; return; }
+  b.innerHTML = r.map(function(t) {
+    var n0 = (t.notes || []).length ? t.notes[0].text : '&mdash;';
+    return '<tr>' +
+      '<td class="tk">' + t.tk + '</td>' +
+      '<td><span class="badge bo">' + t.action + '</span></td>' +
+      '<td class="tm neu">' + t.date + '</td>' +
+      '<td class="tm">' + t.sh + '</td>' +
+      '<td class="tm">$' + t.price.toFixed(2) + '</td>' +
+      '<td style="color:var(--muted);font-size:12px">' + n0 + '</td>' +
+      '<td><button class="btn-x del-btn" data-id="' + t.id + '">&#x2715;</button></td>' +
+    '</tr>';
+  }).join('');
+  b.querySelectorAll('.del-btn').forEach(function(btn) { btn.addEventListener('click', function() { deleteTrade(+btn.getAttribute('data-id')); }); });
+}
 
-  mEl.innerHTML=
-    '<div class="metric"><div class="metric-label">Total invested</div><div class="metric-value">$'+totalCost.toFixed(2)+'</div></div>'+
-    '<div class="metric"><div class="metric-label">Market value</div><div class="metric-value">$'+totalValue.toFixed(2)+'</div></div>'+
-    '<div class="metric"><div class="metric-label">Total P&amp;L</div><div class="metric-value '+fc(totalPnl)+'">'+f$(totalPnl,true)+'</div></div>'+
-    '<div class="metric"><div class="metric-label">Realized</div><div class="metric-value '+fc(realPnl)+'">'+f$(realPnl,true)+'</div></div>'+
-    '<div class="metric"><div class="metric-label">Unrealized</div><div class="metric-value '+fc(openPnl)+'">'+f$(openPnl,true)+'</div></div>'+
-    (bestTrade?'<div class="metric"><div class="metric-label">Best lot</div><div class="metric-value pos" style="font-size:14px">'+bestTrade.tk+' Lot '+ln(bestTrade)+'<br><span style="font-size:12px">'+fp(pnl(bestTrade).p)+'</span></div></div>':'');
-
-  document.getElementById('rp-chart-title').textContent=selTk?selTk+' — value over time':'Portfolio value over time';
-  document.getElementById('rp-events-title').textContent=selTk?selTk+' trade events':'All trade events';
-
-  // ── Build timeline labels ──
-  var dates=rpDates(filtered, selRange);
-  if(dates.length<2){ dates=[filtered.map(function(t){return t.date;}).sort()[0], td()]; }
-
-  var costSeries=[], valueSeries=[], pnlSeries=[], cumPnlSeries=[], lotsSeries=[];
-  dates.forEach(function(d){
-    var snap=rpSnapshot(d,filtered);
-    var rPnl=rpRealizedUpTo(d,filtered);
-    costSeries.push(snap.cost);
-    valueSeries.push(snap.value);
-    pnlSeries.push(snap.unrealPnl+rPnl);
-    cumPnlSeries.push(rPnl);
-    lotsSeries.push(snap.openLots);
-  });
-
-  // ── Main chart: cost vs value vs P&L ──
-  dc('rp-chart-main');
-  var mc=document.getElementById('rp-chart-main');
-  CH['rp-chart-main']=new Chart(mc,{
-    type:'line',
-    data:{labels:dates,datasets:[
-      {label:'Cost basis',data:costSeries,borderColor:'#60a5fa',backgroundColor:'rgba(96,165,250,0.08)',borderWidth:2,pointRadius:2,tension:0.3,fill:true,order:2},
-      {label:'Market value',data:valueSeries,borderColor:'#4ade80',backgroundColor:'rgba(74,222,128,0.08)',borderWidth:2,pointRadius:2,tension:0.3,fill:true,order:1},
-      {label:'P&L',data:pnlSeries,borderColor:'#fbbf24',backgroundColor:'transparent',borderWidth:2,borderDash:[6,3],pointRadius:2,tension:0.3,fill:false,order:0}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ctx.dataset.label+': '+f$(ctx.raw,ctx.dataset.label==='P&L');}}}},
-      scales:{x:{grid:{color:gc},ticks:{color:tc,maxTicksLimit:8,font:{family:'DM Mono',size:10}}},
-              y:{grid:{color:gc},ticks:{color:tc,font:{family:'DM Mono',size:10},callback:function(v){return f$(v);}}}}}
-  });
-
-  // ── Cumulative P&L ──
-  dc('rp-chart-cumulative');
-  var pnlColors=pnlSeries.map(function(v){return v>=0?'rgba(74,222,128,0.15)':'rgba(248,113,113,0.15)';});
-  var cp=document.getElementById('rp-chart-cumulative');
-  CH['rp-chart-cumulative']=new Chart(cp,{
-    type:'line',
-    data:{labels:dates,datasets:[{
-      label:'Total P&L',data:pnlSeries,
-      borderColor:pnlSeries[pnlSeries.length-1]>=0?'#4ade80':'#f87171',
-      backgroundColor:pnlSeries[pnlSeries.length-1]>=0?'rgba(74,222,128,0.12)':'rgba(248,113,113,0.12)',
-      borderWidth:2,pointRadius:1.5,tension:0.3,fill:true
-    }]},
-    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return 'P&L: '+f$(ctx.raw,true);}}}},
-      scales:{x:{grid:{color:gc},ticks:{color:tc,maxTicksLimit:6,font:{family:'DM Mono',size:10}}},
-              y:{grid:{color:gc},ticks:{color:tc,font:{family:'DM Mono',size:10},callback:function(v){return f$(v);}}}}}
-  });
-
-  // ── Active lots over time ──
-  dc('rp-chart-lots');
-  var lc=document.getElementById('rp-chart-lots');
-  CH['rp-chart-lots']=new Chart(lc,{
-    type:'line',
-    data:{labels:dates,datasets:[{
-      label:'Open lots',data:lotsSeries,
-      borderColor:'#a78bfa',backgroundColor:'rgba(167,139,250,0.12)',
-      borderWidth:2,pointRadius:1.5,tension:0.1,fill:true,stepped:true
-    }]},
-    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return 'Open lots: '+ctx.raw;}}}},
-      scales:{x:{grid:{color:gc},ticks:{color:tc,maxTicksLimit:6,font:{family:'DM Mono',size:10}}},
-              y:{grid:{color:gc},ticks:{color:tc,font:{family:'DM Mono',size:10},stepSize:1},min:0}}}
-  });
-
-  // ── Events table ──
-  // Build chronological list of opens + closes
-  var events=[];
-  var runningPnl=0;
-  filtered.forEach(function(t){
-    events.push({date:t.date,tk:t.tk,lot:ln(t),type:'Open',sh:t.sh,price:t.price,amount:t.price*t.sh,realized:null,id:t.id});
-    if(t.status==='CLOSED'&&t.ed){
-      var r=(t.ep-t.price)*t.sh;
-      events.push({date:t.ed,tk:t.tk,lot:ln(t),type:'Close',sh:t.sh,price:t.ep,amount:t.ep*t.sh,realized:r,id:t.id});
-    }
-  });
-  events.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0;});
-
-  // Apply range filter to events table too
-  var rangeCutoff=null;
-  var nowE=new Date();
-  if(selRange==='1m') rangeCutoff=new Date(nowE.getFullYear(),nowE.getMonth()-1,nowE.getDate()).toISOString().slice(0,10);
-  else if(selRange==='3m') rangeCutoff=new Date(nowE.getFullYear(),nowE.getMonth()-3,nowE.getDate()).toISOString().slice(0,10);
-  else if(selRange==='6m') rangeCutoff=new Date(nowE.getFullYear(),nowE.getMonth()-6,nowE.getDate()).toISOString().slice(0,10);
-  else if(selRange==='1y') rangeCutoff=new Date(nowE.getFullYear()-1,nowE.getMonth(),nowE.getDate()).toISOString().slice(0,10);
-  if(rangeCutoff) events=events.filter(function(e){return e.date>=rangeCutoff;});
-
-  runningPnl=0;
-  var eb=document.getElementById('rp-events-body');
-  if(!events.length){eb.innerHTML='<tr><td colspan="9"><div class="rp-empty">No events in this period.</div></td></tr>';return;}
-  eb.innerHTML=events.map(function(e){
-    var isClose=e.type==='Close';
-    var typeLabel=isClose?'<span class="badge bc">Close</span>':'<span class="badge bo">Open</span>';
-    var realCell='<span class="neu">—</span>';
-    if(isClose&&e.realized!==null){runningPnl+=e.realized;realCell='<span class="'+fc(e.realized)+'">'+f$(e.realized,true)+'</span>';}
-    var runCell=isClose?'<span class="tm '+fc(runningPnl)+'">'+f$(runningPnl,true)+'</span>':'<span class="neu">—</span>';
-    return '<tr>'+
-      '<td class="tm neu">'+e.date+'</td>'+
-      '<td class="tk">'+e.tk+'</td>'+
-      '<td class="tl">Lot '+e.lot+'</td>'+
-      '<td>'+typeLabel+'</td>'+
-      '<td class="tm">'+e.sh+'</td>'+
-      '<td class="tm">$'+e.price.toFixed(2)+'</td>'+
-      '<td class="tm">$'+e.amount.toFixed(2)+'</td>'+
-      '<td>'+realCell+'</td>'+
-      '<td>'+runCell+'</td>'+
+// ── Log table ──────────────────────────────────────────────────────────────
+function renderLogTable() {
+  var b = document.getElementById('lgb');
+  if (!b) return;
+  var buys = T.filter(function(t) { return t.action === 'BUY'; });
+  if (!buys.length) { b.innerHTML = '<tr><td colspan="8"><div class="empty"><div class="empty-text">No trades yet</div></div></td></tr>'; return; }
+  b.innerHTML = buys.map(function(t) {
+    var pl = pnl(t);
+    var bg = t.status === 'OPEN' ? '<span class="badge bo">Open</span>' : '<span class="badge bc">Closed</span>';
+    return '<tr>' +
+      '<td class="tk">' + t.tk + '</td>' +
+      '<td class="tl">Lot ' + lotNum(t) + '</td>' +
+      '<td class="tm neu">' + t.date + '</td>' +
+      '<td>' + bg + '</td>' +
+      '<td class="tm">' + t.sh + '</td>' +
+      '<td class="tm">$' + t.price.toFixed(2) + '</td>' +
+      '<td class="tm ' + colorClass(pl.g) + '">' + fmtDollar(pl.g, true) + '</td>' +
+      '<td class="tm ' + colorClass(pl.p) + '">' + fmtPct(pl.p) + '</td>' +
     '</tr>';
   }).join('');
 }
 
-function exportData(){var b=new Blob([JSON.stringify({trades:T,prices:P},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='trade-journal-'+td()+'.json';a.click();}
-function importData(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){try{var d=JSON.parse(ev.target.result);if(d.trades){T=d.trades;if(d.prices)P=d.prices;sv();ra();ptt();alert('Import successful.');}else alert('Invalid file format.');}catch(err){alert('Could not parse file.');}};r.readAsText(f);}
-function clearAll(){if(!confirm('Delete ALL trade data permanently?'))return;T=[];P={};H={};LC=1;localStorage.removeItem('tj_t');localStorage.removeItem('tj_p');localStorage.removeItem('tj_h');ra();ptt();}
+// ── Holding analysis ───────────────────────────────────────────────────────
+function renderHolding() {
+  var op = T.filter(function(t) { return t.action === 'BUY' && t.status === 'OPEN'; });
+  var gr = { fr: [], mi: [], lo: [], vl: [] };
+  op.forEach(function(t) {
+    var d = daysBetween(t.date, today());
+    if (d < 30) gr.fr.push({ t: t, d: d });
+    else if (d < 90) gr.mi.push({ t: t, d: d });
+    else if (d < 180) gr.lo.push({ t: t, d: d });
+    else gr.vl.push({ t: t, d: d });
+  });
+  document.getElementById('hsummary').innerHTML =
+    '<div class="hcard"><div class="hclabel">Under 30 days</div><div class="hcval" style="color:var(--accent)">' + gr.fr.length + '</div><div class="hcsub">Fresh positions</div></div>' +
+    '<div class="hcard"><div class="hclabel">30&ndash;90 days</div><div class="hcval" style="color:var(--blue)">' + gr.mi.length + '</div><div class="hcsub">Mid-term</div></div>' +
+    '<div class="hcard"><div class="hclabel">90&ndash;180 days</div><div class="hcval" style="color:var(--amber)">' + gr.lo.length + '</div><div class="hcsub">Review thesis</div></div>' +
+    '<div class="hcard"><div class="hclabel">180+ days</div><div class="hcval" style="color:var(--red)">' + gr.vl.length + '</div><div class="hcsub">Long-term or stale</div></div>';
+  var lbs = [
+    { k: 'vl', l: '180+ days &mdash; long-term / stale', c: 'var(--red)' },
+    { k: 'lo', l: '90&ndash;180 days &mdash; review your thesis', c: 'var(--amber)' },
+    { k: 'mi', l: '30&ndash;90 days &mdash; mid-term', c: 'var(--blue)' },
+    { k: 'fr', l: 'Under 30 days &mdash; fresh', c: 'var(--accent)' }
+  ];
+  var con = document.getElementById('hgroups');
+  con.innerHTML = '';
+  lbs.forEach(function(lb) {
+    var items = gr[lb.k];
+    if (!items.length) return;
+    var card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = '<div class="card-header"><span class="card-title" style="color:' + lb.c + '">' + lb.l + '</span></div>' +
+      '<div class="tw"><table><thead><tr><th>Ticker</th><th>Lot</th><th>Entry date</th><th>Shares</th><th>Entry $</th><th>Current $</th><th>P&L $</th><th>P&L %</th><th>Days held</th></tr></thead><tbody>' +
+      items.map(function(it) {
+        var t = it.t, d = it.d, pl = pnl(t), cur = P[t.tk] || t.price;
+        return '<tr>' +
+          '<td class="tk">' + t.tk + '</td>' +
+          '<td class="tl">Lot ' + lotNum(t) + '</td>' +
+          '<td class="tm neu">' + t.date + '</td>' +
+          '<td class="tm">' + t.sh + '</td>' +
+          '<td class="tm">$' + t.price.toFixed(2) + '</td>' +
+          '<td class="tm">$' + cur.toFixed(2) + '</td>' +
+          '<td class="tm ' + colorClass(pl.g) + '">' + fmtDollar(pl.g, true) + '</td>' +
+          '<td class="tm ' + colorClass(pl.p) + '">' + fmtPct(pl.p) + '</td>' +
+          '<td>' + heldBadge(d) + '</td>' +
+        '</tr>';
+      }).join('') +
+      '</tbody></table></div>';
+    con.appendChild(card);
+  });
+  if (!op.length) con.innerHTML = '<div class="empty"><div class="empty-icon">&#9201;</div><div class="empty-text">No open positions to analyze</div></div>';
+}
+
+// ── Timeline ───────────────────────────────────────────────────────────────
+function populateTimelineTicker() {
+  var sel = document.getElementById('tticker');
+  if (!sel) return;
+  var cur = sel.value;
+  var tks = [...new Set(T.filter(function(t) { return t.action === 'BUY'; }).map(function(t) { return t.tk; }))];
+  sel.innerHTML = '<option value="">Select ticker&hellip;</option>' + tks.map(function(tk) { return '<option value="' + tk + '"' + (tk === cur ? ' selected' : '') + '>' + tk + '</option>'; }).join('');
+}
+function renderTimeline() {
+  var tk = document.getElementById('tticker').value;
+  var canvas = document.getElementById('ctl');
+  if (CH['tl']) { CH['tl'].destroy(); delete CH['tl']; }
+  document.getElementById('tlt').style.display = 'none';
+  if (!tk) { canvas.style.display = 'none'; return; }
+  canvas.style.display = 'block';
+  var hist = H[tk];
+  var lots = T.filter(function(t) { return t.tk === tk && t.action === 'BUY'; });
+  var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var gc = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)';
+  var tc = dark ? '#6b7280' : '#9ca3af';
+  var cols = ['#4ade80', '#60a5fa', '#fbbf24', '#f87171', '#a78bfa'];
+  if (!hist || !hist.t) {
+    if (!lots.length) return;
+    CH['tl'] = new Chart(canvas, {
+      type: 'scatter',
+      data: { datasets: lots.map(function(t, i) { return { label: 'Lot ' + lotNum(t) + ' @ $' + t.price.toFixed(2), data: [{ x: t.date, y: t.price }], backgroundColor: cols[i % 5], pointRadius: 10, pointHoverRadius: 13, showLine: false }; }) },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: tc, font: { family: 'DM Mono', size: 11 } } }, tooltip: { callbacks: { label: function(ctx) { return ctx.dataset.label; } } } }, scales: { x: { type: 'time', time: { unit: 'month' }, grid: { color: gc }, ticks: { color: tc } }, y: { grid: { color: gc }, ticks: { color: tc, callback: function(v) { return '$' + v.toFixed(0); } } } } }
+    });
+  } else {
+    var labels = hist.t.map(function(ts) { return new Date(ts * 1000).toISOString().slice(0, 10); });
+    var ds = [{ label: tk + ' price', data: hist.c, borderColor: dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.2)', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.3, order: 1 }];
+    lots.forEach(function(t, i) {
+      var cl = labels.reduce(function(b, l) { return Math.abs(new Date(l) - new Date(t.date)) < Math.abs(new Date(b) - new Date(t.date)) ? l : b; }, labels[0]);
+      var idx = labels.indexOf(cl);
+      var sp = new Array(hist.c.length).fill(null);
+      sp[idx] = t.price;
+      ds.push({ label: 'Lot ' + lotNum(t) + ' ($' + t.price.toFixed(2) + ')', data: sp, backgroundColor: cols[i % 5], borderColor: cols[i % 5], pointRadius: 9, pointHoverRadius: 12, showLine: false, order: 0 });
+    });
+    CH['tl'] = new Chart(canvas, {
+      type: 'line',
+      data: { labels: labels, datasets: ds },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: tc, font: { family: 'DM Mono', size: 11 }, filter: function(i) { return i.text !== tk + ' price'; } } }, tooltip: { callbacks: { label: function(ctx) { return ctx.dataset.label + ': $' + (ctx.raw || 0).toFixed(2); } } } }, scales: { x: { grid: { color: gc }, ticks: { color: tc, maxTicksLimit: 8, font: { family: 'DM Mono', size: 10 } } }, y: { grid: { color: gc }, ticks: { color: tc, callback: function(v) { return '$' + v.toFixed(0); }, font: { family: 'DM Mono', size: 10 } } } } }
+    });
+  }
+  document.getElementById('tlttitle').textContent = 'Lots for ' + tk;
+  document.getElementById('tlb').innerHTML = lots.map(function(t) {
+    var pl = pnl(t);
+    var bg = t.status === 'OPEN' ? '<span class="badge bo">Open</span>' : '<span class="badge bc">Closed</span>';
+    return '<tr><td class="tl">Lot ' + lotNum(t) + '</td><td class="tm neu">' + t.date + '</td><td class="tm">' + t.sh + '</td><td class="tm">$' + t.price.toFixed(2) + '</td><td class="tm">' + (P[tk] ? '$' + P[tk].toFixed(2) : '&mdash;') + '</td><td class="tm ' + colorClass(pl.g) + '">' + fmtDollar(pl.g, true) + '</td><td class="tm ' + colorClass(pl.p) + '">' + fmtPct(pl.p) + '</td><td>' + bg + '</td></tr>';
+  }).join('');
+  document.getElementById('tlt').style.display = lots.length ? 'block' : 'none';
+}
+
+// ── Charts ─────────────────────────────────────────────────────────────────
+function destroyChart(id) { if (CH[id]) { CH[id].destroy(); delete CH[id]; } }
+function renderCharts() {
+  var buys = T.filter(function(t) { return t.action === 'BUY'; });
+  if (!buys.length) return;
+  var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var gc = dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.07)';
+  var tc = dark ? '#6b7280' : '#9ca3af';
+  var tks = [...new Set(buys.map(function(t) { return t.tk; }))];
+  var rp = tks.map(function(tk) { return buys.filter(function(t) { return t.tk === tk && t.status === 'CLOSED'; }).reduce(function(s,t) { return s + pnl(t).g; }, 0); });
+  var up = tks.map(function(tk) { return buys.filter(function(t) { return t.tk === tk && t.status === 'OPEN'; }).reduce(function(s,t) { return s + pnl(t).g; }, 0); });
+  ['cpnl', 'capnl'].forEach(function(id) {
+    var cv = document.getElementById(id);
+    if (!cv) return;
+    destroyChart(id);
+    CH[id] = new Chart(cv, {
+      type: 'bar',
+      data: { labels: tks, datasets: [{ label: 'Realized', data: rp, backgroundColor: rp.map(function(v) { return v >= 0 ? '#4ade80' : '#f87171'; }), borderRadius: 4 }, { label: 'Unrealized', data: up, backgroundColor: up.map(function(v) { return v >= 0 ? 'rgba(74,222,128,0.4)' : 'rgba(248,113,113,0.4)'; }), borderRadius: 4 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) { return ctx.dataset.label + ': ' + fmtDollar(ctx.raw, true); } } } }, scales: { x: { grid: { color: gc }, ticks: { color: tc, font: { family: 'DM Mono' } } }, y: { grid: { color: gc }, ticks: { color: tc, font: { family: 'DM Mono' }, callback: function(v) { return fmtDollar(v); } } } } }
+    });
+  });
+  var ac = document.getElementById('calloc');
+  if (ac) {
+    destroyChart('calloc');
+    var op = T.filter(function(t) { return t.action === 'BUY' && t.status === 'OPEN'; });
+    if (op.length) {
+      var at = [...new Set(op.map(function(t) { return t.tk; }))];
+      var av = at.map(function(tk) { return op.filter(function(t) { return t.tk === tk; }).reduce(function(s,t) { return s + (P[t.tk] || t.price) * t.sh; }, 0); });
+      var cols = ['#4ade80','#60a5fa','#fbbf24','#f87171','#a78bfa','#34d399','#fb923c'];
+      CH['calloc'] = new Chart(ac, { type: 'doughnut', data: { labels: at, datasets: [{ data: av, backgroundColor: cols.slice(0, at.length), borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { position: 'right', labels: { color: tc, font: { family: 'DM Mono', size: 11 }, boxWidth: 10, padding: 12 } }, tooltip: { callbacks: { label: function(ctx) { return ctx.label + ': $' + ctx.raw.toFixed(2); } } } } } });
+    }
+  }
+  var wl = document.getElementById('cwl');
+  if (wl) {
+    destroyChart('cwl');
+    var acl = T.filter(function(t) { return t.action === 'BUY' && t.status === 'CLOSED'; });
+    var wins = acl.filter(function(t) { return pnl(t).g > 0; }).length;
+    var loss = acl.filter(function(t) { return pnl(t).g <= 0; }).length;
+    if (wins + loss > 0) CH['cwl'] = new Chart(wl, { type: 'doughnut', data: { labels: ['Wins', 'Losses'], datasets: [{ data: [wins, loss], backgroundColor: ['#4ade80', '#f87171'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { position: 'right', labels: { color: tc, font: { family: 'DM Mono', size: 11 }, boxWidth: 10, padding: 12 } } } } });
+  }
+}
+
+// ── Report ─────────────────────────────────────────────────────────────────
+function populateReportTicker() {
+  var sel = document.getElementById('rp-ticker');
+  if (!sel) return;
+  var cur = sel.value;
+  var tks = [...new Set(T.filter(function(t) { return t.action === 'BUY'; }).map(function(t) { return t.tk; }))].sort();
+  sel.innerHTML = '<option value="">All stocks</option>' + tks.map(function(tk) { return '<option value="' + tk + '"' + (tk === cur ? ' selected' : '') + '>' + tk + '</option>'; }).join('');
+}
+function rpDates(trades, rangeKey) {
+  var all = new Set();
+  trades.forEach(function(t) { all.add(t.date); if (t.status === 'CLOSED' && t.ed) all.add(t.ed); });
+  all.add(today());
+  var sorted = [...all].sort();
+  if (!sorted.length) return sorted;
+  var cutoff = null, now = new Date();
+  if (rangeKey === '1m') cutoff = new Date(now.getFullYear(), now.getMonth()-1, now.getDate());
+  else if (rangeKey === '3m') cutoff = new Date(now.getFullYear(), now.getMonth()-3, now.getDate());
+  else if (rangeKey === '6m') cutoff = new Date(now.getFullYear(), now.getMonth()-6, now.getDate());
+  else if (rangeKey === '1y') cutoff = new Date(now.getFullYear()-1, now.getMonth(), now.getDate());
+  if (cutoff) {
+    var cs = cutoff.toISOString().slice(0, 10);
+    sorted = sorted.filter(function(d) { return d >= cs; });
+    if (!sorted.length || sorted[0] > cs) sorted.unshift(cs);
+  }
+  return sorted;
+}
+function rpSnapshot(date, trades) {
+  var cost = 0, value = 0, unrealPnl = 0, openLots = 0;
+  trades.forEach(function(t) {
+    if (t.action !== 'BUY') return;
+    if (t.date > date) return;
+    var exitDate = t.status === 'CLOSED' ? t.ed : null;
+    if (exitDate && exitDate < date) return;
+    openLots++;
+    cost += t.price * t.sh;
+    var cur = (exitDate && exitDate <= date) ? t.ep : (P[t.tk] || t.price);
+    value += cur * t.sh;
+    unrealPnl += (cur - t.price) * t.sh;
+  });
+  return { cost: cost, value: value, unrealPnl: unrealPnl, openLots: openLots };
+}
+function rpRealizedUpTo(date, trades) {
+  return trades.filter(function(t) { return t.action === 'BUY' && t.status === 'CLOSED' && t.ed && t.ed <= date; })
+    .reduce(function(s,t) { return s + (t.ep - t.price) * t.sh; }, 0);
+}
+function renderReport() {
+  var selTk = document.getElementById('rp-ticker') ? document.getElementById('rp-ticker').value : '';
+  var selRange = document.getElementById('rp-range') ? document.getElementById('rp-range').value : 'all';
+  var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var gc = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)';
+  var tc = dark ? '#6b7280' : '#9ca3af';
+  var buys = T.filter(function(t) { return t.action === 'BUY'; });
+  var filtered = selTk ? buys.filter(function(t) { return t.tk === selTk; }) : buys;
+  var mEl = document.getElementById('rp-metrics');
+  if (!filtered.length) {
+    if (mEl) mEl.innerHTML = '<div class="metric"><div class="metric-label">No data</div><div class="metric-value neu">&mdash;</div></div>';
+    ['rp-chart-main','rp-chart-cumulative','rp-chart-lots'].forEach(destroyChart);
+    var eb2 = document.getElementById('rp-events-body');
+    if (eb2) eb2.innerHTML = '<tr><td colspan="9"><div class="rp-empty">No trades yet. Register your first trade to see the report.</div></td></tr>';
+    return;
+  }
+  var totalCost = filtered.reduce(function(s,t) { return s + t.price * t.sh; }, 0);
+  var totalValue = filtered.reduce(function(s,t) { var cur = t.status === 'CLOSED' ? t.ep : (P[t.tk] || t.price); return s + cur * t.sh; }, 0);
+  var realPnl = filtered.filter(function(t) { return t.status === 'CLOSED'; }).reduce(function(s,t) { return s + (t.ep - t.price) * t.sh; }, 0);
+  var openPnl = filtered.filter(function(t) { return t.status === 'OPEN'; }).reduce(function(s,t) { var cur = P[t.tk] || t.price; return s + (cur - t.price) * t.sh; }, 0);
+  var totalPnl = realPnl + openPnl;
+  var bestTrade = null;
+  filtered.forEach(function(t) { if (bestTrade === null || pnl(t).p > pnl(bestTrade).p) bestTrade = t; });
+  if (mEl) mEl.innerHTML =
+    '<div class="metric"><div class="metric-label">Total invested</div><div class="metric-value">$' + totalCost.toFixed(2) + '</div></div>' +
+    '<div class="metric"><div class="metric-label">Market value</div><div class="metric-value">$' + totalValue.toFixed(2) + '</div></div>' +
+    '<div class="metric"><div class="metric-label">Total P&L</div><div class="metric-value ' + colorClass(totalPnl) + '">' + fmtDollar(totalPnl, true) + '</div></div>' +
+    '<div class="metric"><div class="metric-label">Realized</div><div class="metric-value ' + colorClass(realPnl) + '">' + fmtDollar(realPnl, true) + '</div></div>' +
+    '<div class="metric"><div class="metric-label">Unrealized</div><div class="metric-value ' + colorClass(openPnl) + '">' + fmtDollar(openPnl, true) + '</div></div>' +
+    (bestTrade ? '<div class="metric"><div class="metric-label">Best lot</div><div class="metric-value pos" style="font-size:14px">' + bestTrade.tk + ' Lot ' + lotNum(bestTrade) + '<br><span style="font-size:12px">' + fmtPct(pnl(bestTrade).p) + '</span></div></div>' : '');
+  var titleEl = document.getElementById('rp-chart-title');
+  if (titleEl) titleEl.textContent = selTk ? selTk + ' — value over time' : 'Portfolio value over time';
+  var evTitleEl = document.getElementById('rp-events-title');
+  if (evTitleEl) evTitleEl.textContent = selTk ? selTk + ' trade events' : 'All trade events';
+  var dates = rpDates(filtered, selRange);
+  if (dates.length < 2) { dates = [filtered.map(function(t) { return t.date; }).sort()[0], today()]; }
+  var costSeries = [], valueSeries = [], pnlSeries = [], lotsSeries = [];
+  dates.forEach(function(d) {
+    var snap = rpSnapshot(d, filtered);
+    var rPnl = rpRealizedUpTo(d, filtered);
+    costSeries.push(snap.cost);
+    valueSeries.push(snap.value);
+    pnlSeries.push(snap.unrealPnl + rPnl);
+    lotsSeries.push(snap.openLots);
+  });
+  destroyChart('rp-chart-main');
+  var mc = document.getElementById('rp-chart-main');
+  if (mc) CH['rp-chart-main'] = new Chart(mc, {
+    type: 'line',
+    data: { labels: dates, datasets: [
+      { label: 'Cost basis', data: costSeries, borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.08)', borderWidth: 2, pointRadius: 2, tension: 0.3, fill: true, order: 2 },
+      { label: 'Market value', data: valueSeries, borderColor: '#4ade80', backgroundColor: 'rgba(74,222,128,0.08)', borderWidth: 2, pointRadius: 2, tension: 0.3, fill: true, order: 1 },
+      { label: 'P&L', data: pnlSeries, borderColor: '#fbbf24', backgroundColor: 'transparent', borderWidth: 2, borderDash: [6,3], pointRadius: 2, tension: 0.3, fill: false, order: 0 }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) { return ctx.dataset.label + ': ' + fmtDollar(ctx.raw, ctx.dataset.label === 'P&L'); } } } }, scales: { x: { grid: { color: gc }, ticks: { color: tc, maxTicksLimit: 8, font: { family: 'DM Mono', size: 10 } } }, y: { grid: { color: gc }, ticks: { color: tc, font: { family: 'DM Mono', size: 10 }, callback: function(v) { return fmtDollar(v); } } } } }
+  });
+  destroyChart('rp-chart-cumulative');
+  var cp = document.getElementById('rp-chart-cumulative');
+  if (cp) CH['rp-chart-cumulative'] = new Chart(cp, {
+    type: 'line',
+    data: { labels: dates, datasets: [{ label: 'Total P&L', data: pnlSeries, borderColor: pnlSeries[pnlSeries.length-1] >= 0 ? '#4ade80' : '#f87171', backgroundColor: pnlSeries[pnlSeries.length-1] >= 0 ? 'rgba(74,222,128,0.12)' : 'rgba(248,113,113,0.12)', borderWidth: 2, pointRadius: 1.5, tension: 0.3, fill: true }] },
+    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) { return 'P&L: ' + fmtDollar(ctx.raw, true); } } } }, scales: { x: { grid: { color: gc }, ticks: { color: tc, maxTicksLimit: 6, font: { family: 'DM Mono', size: 10 } } }, y: { grid: { color: gc }, ticks: { color: tc, font: { family: 'DM Mono', size: 10 }, callback: function(v) { return fmtDollar(v); } } } } }
+  });
+  destroyChart('rp-chart-lots');
+  var lc = document.getElementById('rp-chart-lots');
+  if (lc) CH['rp-chart-lots'] = new Chart(lc, {
+    type: 'line',
+    data: { labels: dates, datasets: [{ label: 'Open lots', data: lotsSeries, borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.12)', borderWidth: 2, pointRadius: 1.5, tension: 0.1, fill: true, stepped: true }] },
+    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) { return 'Open lots: ' + ctx.raw; } } } }, scales: { x: { grid: { color: gc }, ticks: { color: tc, maxTicksLimit: 6, font: { family: 'DM Mono', size: 10 } } }, y: { grid: { color: gc }, ticks: { color: tc, font: { family: 'DM Mono', size: 10 }, stepSize: 1 }, min: 0 } } }
+  });
+  var events = [];
+  filtered.forEach(function(t) {
+    events.push({ date: t.date, tk: t.tk, lot: lotNum(t), type: 'Open', sh: t.sh, price: t.price, amount: t.price * t.sh, realized: null });
+    if (t.status === 'CLOSED' && t.ed) {
+      var r = (t.ep - t.price) * t.sh;
+      events.push({ date: t.ed, tk: t.tk, lot: lotNum(t), type: 'Close', sh: t.sh, price: t.ep, amount: t.ep * t.sh, realized: r });
+    }
+  });
+  events.sort(function(a,b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+  var nowE = new Date(), rangeCutoff = null;
+  if (selRange === '1m') rangeCutoff = new Date(nowE.getFullYear(), nowE.getMonth()-1, nowE.getDate()).toISOString().slice(0,10);
+  else if (selRange === '3m') rangeCutoff = new Date(nowE.getFullYear(), nowE.getMonth()-3, nowE.getDate()).toISOString().slice(0,10);
+  else if (selRange === '6m') rangeCutoff = new Date(nowE.getFullYear(), nowE.getMonth()-6, nowE.getDate()).toISOString().slice(0,10);
+  else if (selRange === '1y') rangeCutoff = new Date(nowE.getFullYear()-1, nowE.getMonth(), nowE.getDate()).toISOString().slice(0,10);
+  if (rangeCutoff) events = events.filter(function(e) { return e.date >= rangeCutoff; });
+  var runningPnl = 0;
+  var eb = document.getElementById('rp-events-body');
+  if (!eb) return;
+  if (!events.length) { eb.innerHTML = '<tr><td colspan="9"><div class="rp-empty">No events in this period.</div></td></tr>'; return; }
+  eb.innerHTML = events.map(function(e) {
+    var isClose = e.type === 'Close';
+    var typeLabel = isClose ? '<span class="badge bc">Close</span>' : '<span class="badge bo">Open</span>';
+    var realCell = '<span class="neu">&mdash;</span>';
+    if (isClose && e.realized !== null) { runningPnl += e.realized; realCell = '<span class="' + colorClass(e.realized) + '">' + fmtDollar(e.realized, true) + '</span>'; }
+    var runCell = isClose ? '<span class="tm ' + colorClass(runningPnl) + '">' + fmtDollar(runningPnl, true) + '</span>' : '<span class="neu">&mdash;</span>';
+    return '<tr>' +
+      '<td class="tm neu">' + e.date + '</td>' +
+      '<td class="tk">' + e.tk + '</td>' +
+      '<td class="tl">Lot ' + e.lot + '</td>' +
+      '<td>' + typeLabel + '</td>' +
+      '<td class="tm">' + e.sh + '</td>' +
+      '<td class="tm">$' + e.price.toFixed(2) + '</td>' +
+      '<td class="tm">$' + e.amount.toFixed(2) + '</td>' +
+      '<td>' + realCell + '</td>' +
+      '<td>' + runCell + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+// ── Import / Export ────────────────────────────────────────────────────────
+function exportData() {
+  var b = new Blob([JSON.stringify({ trades: T, prices: P }, null, 2)], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(b);
+  a.download = 'trade-journal-' + today() + '.json';
+  a.click();
+}
+function importData(e) {
+  var f = e.target.files[0];
+  if (!f) return;
+  var r = new FileReader();
+  r.onload = function(ev) {
+    try {
+      var d = JSON.parse(ev.target.result);
+      if (d.trades) { T = d.trades; if (d.prices) P = d.prices; save(); renderAll(); populateTimelineTicker(); populateReportTicker(); alert('Import successful.'); }
+      else alert('Invalid file format.');
+    } catch(err) { alert('Could not parse file.'); }
+  };
+  r.readAsText(f);
+}
+function clearAll() {
+  if (!confirm('Delete ALL trade data permanently?')) return;
+  T = []; P = {}; H = {}; LC = 1;
+  localStorage.removeItem('tj_t'); localStorage.removeItem('tj_p'); localStorage.removeItem('tj_h');
+  renderAll(); populateTimelineTicker(); populateReportTicker();
+}
 </script>
 </body>
 </html>
