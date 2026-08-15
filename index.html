@@ -135,6 +135,10 @@ tbody tr:hover td{background:rgba(128,128,128,.04);}
 .sinp{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:7px 10px;outline:none;width:240px;}
 .sinp:focus{border-color:var(--accent);}
 .rp-empty{padding:60px 20px;text-align:center;color:var(--muted);font-size:13px;}
+.acct-row{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;border-bottom:1px solid var(--border);}.acct-row:last-child{border-bottom:none;}
+.acct-label{font-size:13px;color:var(--muted);}
+.acct-val{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;}
+.acct-total{background:var(--surface2);}.acct-total .acct-label{color:var(--text);font-weight:500;}.acct-total .acct-val{font-size:14px;}
 ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 @media(max-width:768px){.app{grid-template-columns:1fr;}.sidebar{position:static;height:auto;flex-direction:row;padding:10px 12px;overflow-x:auto;}.logo,.sidebar-footer{display:none;}.nav-section{display:flex;gap:4px;margin:0;padding:0;}.nav-label{display:none;}.main{padding:16px;}}
 </style>
@@ -154,6 +158,7 @@ tbody tr:hover td{background:rgba(128,128,128,.04);}
     <button class="nav-item" data-page="closed"><span class="nav-dot"></span>Closed trades</button>
     <button class="nav-item" data-page="timeline"><span class="nav-dot"></span>Trade timeline</button>
     <button class="nav-item" data-page="holding"><span class="nav-dot"></span>Holding analysis</button>
+    <button class="nav-item" data-page="account"><span class="nav-dot"></span>Account P&L</button>
     <button class="nav-item" data-page="report"><span class="nav-dot"></span>Report</button>
     <button class="nav-item" data-page="analytics"><span class="nav-dot"></span>Analytics</button>
     <button class="nav-item" data-page="settings"><span class="nav-dot"></span>Settings</button>
@@ -244,6 +249,82 @@ tbody tr:hover td{background:rgba(128,128,128,.04);}
   <div class="page-header"><div><div class="page-title">Holding analysis</div><div class="page-sub">Flag positions by time held</div></div></div>
   <div class="hgrid" id="hsummary"></div>
   <div id="hgroups" style="display:flex;flex-direction:column;gap:16px;"></div>
+</div>
+
+<!-- ACCOUNT P&L -->
+<div class="page" id="page-account">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Account P&amp;L</div>
+      <div class="page-sub">Full picture: capital deployed, trading results, cauci&oacute;n costs, and dividends</div>
+    </div>
+  </div>
+
+  <!-- Top summary bar -->
+  <div class="metrics" id="acct-metrics"></div>
+
+  <!-- Two column breakdown -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+
+    <!-- Capital flows -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">Capital deployed (ARS)</span></div>
+      <div class="card-body" style="padding:0;">
+        <div class="acct-row"><span class="acct-label">Total deposited</span><span class="acct-val pos" id="a-dep"></span></div>
+        <div class="acct-row"><span class="acct-label">Total withdrawn</span><span class="acct-val neg" id="a-ret"></span></div>
+        <div class="acct-row acct-total"><span class="acct-label">Net capital in account</span><span class="acct-val" id="a-net"></span></div>
+      </div>
+    </div>
+
+    <!-- Trading results -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">Trading results (ARS)</span></div>
+      <div class="card-body" style="padding:0;">
+        <div class="acct-row"><span class="acct-label">Realized P&amp;L (closed lots)</span><span class="acct-val" id="a-rpnl"></span></div>
+        <div class="acct-row"><span class="acct-label">Unrealized P&amp;L (open lots)</span><span class="acct-val" id="a-upnl"></span></div>
+        <div class="acct-row acct-total"><span class="acct-label">Total trading P&amp;L</span><span class="acct-val" id="a-tpnl"></span></div>
+      </div>
+    </div>
+
+    <!-- Caucion -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Caución (ARS)</span>
+        <span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">leveraged daily repo</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div class="acct-row"><span class="acct-label">Tomadora (borrowed USD)</span><span class="acct-val" id="a-ct-usd"></span></div>
+        <div class="acct-row"><span class="acct-label">Net interest cost (ARS)</span><span class="acct-val" id="a-ci-ars"></span></div>
+        <div class="acct-row"><span class="acct-label">Net interest cost (USD)</span><span class="acct-val" id="a-ci-usd"></span></div>
+        <div class="acct-row acct-total" style="font-size:12px;color:var(--muted);padding:10px 18px;">
+          Positive = net earned (colocadora); Negative = net cost (tomadora)
+        </div>
+      </div>
+    </div>
+
+    <!-- Income -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">Income &amp; taxes (ARS)</span></div>
+      <div class="card-body" style="padding:0;">
+        <div class="acct-row"><span class="acct-label">Dividends &amp; income (ARS)</span><span class="acct-val pos" id="a-div-ars"></span></div>
+        <div class="acct-row"><span class="acct-label">Dividends &amp; income (USD)</span><span class="acct-val pos" id="a-div-usd"></span></div>
+        <div class="acct-row"><span class="acct-label">Taxes withheld (ARS)</span><span class="acct-val neg" id="a-tax"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total P&L waterfall -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-header"><span class="card-title">P&amp;L waterfall — where the money came from</span></div>
+    <div class="card-body" style="padding:16px;"><div class="cw" style="height:260px;"><canvas id="acct-chart-waterfall"></canvas></div></div>
+  </div>
+
+  <!-- Disclaimer -->
+  <div style="font-size:12px;color:var(--muted);line-height:1.6;padding:4px 0;">
+    <strong style="color:var(--text);">Note:</strong> All figures in ARS. Open lot unrealized P&amp;L uses last known price (entry price if Finnhub not yet refreshed).
+    Caución costs show the net interest from all tomadora + colocadora + vencimiento operations — positive means you earned more than you paid.
+    This view does not include USD-denominated trades (MELID, METAD, NVDAD, etc.) since mixing currencies would distort ARS totals.
+  </div>
 </div>
 
 <!-- REPORT -->
@@ -362,17 +443,20 @@ tbody tr:hover td{background:rgba(128,128,128,.04);}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
-var _SEED_T = [{"id": 1, "tk": "BMA", "action": "BUY", "sh": 58.0, "price": 8670.0, "date": "2025-06-26", "notes": [], "status": "CLOSED", "ep": 15720.0, "ed": "2026-01-28"}, {"id": 2, "tk": "YPFD", "action": "BUY", "sh": 12.0, "price": 40400.0, "date": "2025-06-26", "notes": [], "status": "CLOSED", "ep": 57725.0, "ed": "2026-01-28"}, {"id": 3, "tk": "AL30", "action": "BUY", "sh": 370.0, "price": 826.0, "date": "2025-06-26", "notes": [], "status": "CLOSED", "ep": 878.3, "ed": "2026-01-12"}, {"id": 4, "tk": "SPY", "action": "BUY", "sh": 14.0, "price": 42300.0, "date": "2025-08-05", "notes": [], "status": "CLOSED", "ep": 51425.0, "ed": "2026-02-06"}, {"id": 5, "tk": "MELI", "action": "BUY", "sh": 8.0, "price": 25520.0, "date": "2025-10-17", "notes": [], "status": "CLOSED", "ep": 28580.0, "ed": "2025-10-29"}, {"id": 6, "tk": "AL30", "action": "BUY", "sh": 20.0, "price": 838.8, "date": "2025-10-17", "notes": [], "status": "CLOSED", "ep": 878.3, "ed": "2026-01-12"}, {"id": 7, "tk": "GGAL", "action": "BUY", "sh": 48.0, "price": 7920.0, "date": "2025-10-29", "notes": [], "status": "CLOSED", "ep": 7490.0, "ed": "2026-06-02"}, {"id": 8, "tk": "MELI", "action": "BUY", "sh": 13.0, "price": 28620.0, "date": "2025-10-29", "notes": [], "status": "CLOSED", "ep": 28580.0, "ed": "2025-10-29"}, {"id": 9, "tk": "META", "action": "BUY", "sh": 21.0, "price": 41371.4286, "date": "2025-10-30", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 10, "tk": "MELI", "action": "BUY", "sh": 17.0, "price": 25620.0, "date": "2025-12-26", "notes": [], "status": "CLOSED", "ep": 28365.8824, "ed": "2026-01-26"}, {"id": 11, "tk": "SPY", "action": "BUY", "sh": 3.0, "price": 52850.0, "date": "2025-12-26", "notes": [], "status": "CLOSED", "ep": 51425.0, "ed": "2026-02-06"}, {"id": 12, "tk": "BBD", "action": "BUY", "sh": 70.0, "price": 5470.0, "date": "2026-01-06", "notes": [], "status": "CLOSED", "ep": 5965.0, "ed": "2026-02-25"}, {"id": 13, "tk": "SPY", "action": "BUY", "sh": 4.0, "price": 53075.0, "date": "2026-01-06", "notes": [], "status": "CLOSED", "ep": 51425.0, "ed": "2026-02-06"}, {"id": 14, "tk": "VIST", "action": "BUY", "sh": 11.0, "price": 22580.0, "date": "2026-01-08", "notes": [], "status": "CLOSED", "ep": 29080.0, "ed": "2026-01-28"}, {"id": 15, "tk": "CVX", "action": "BUY", "sh": 23.0, "price": 15030.0, "date": "2026-01-08", "notes": [], "status": "CLOSED", "ep": 16730.0, "ed": "2026-02-05"}, {"id": 16, "tk": "BBV", "action": "BUY", "sh": 9.0, "price": 37200.0, "date": "2026-01-14", "notes": [], "status": "CLOSED", "ep": 38060.0, "ed": "2026-01-28"}, {"id": 17, "tk": "MELI", "action": "BUY", "sh": 13.0, "price": 26000.0, "date": "2026-01-14", "notes": [], "status": "CLOSED", "ep": 28060.0, "ed": "2026-01-26"}, {"id": 18, "tk": "GOOGL", "action": "BUY", "sh": 76.0, "price": 8695.0, "date": "2026-01-15", "notes": [], "status": "CLOSED", "ep": 8700.0, "ed": "2026-01-28"}, {"id": 19, "tk": "EWZ", "action": "BUY", "sh": 14.0, "price": 27820.0, "date": "2026-01-26", "notes": [], "status": "CLOSED", "ep": 27834.2857, "ed": "2026-05-18"}, {"id": 20, "tk": "BAK", "action": "BUY", "sh": 158.0, "price": 2830.0, "date": "2026-01-26", "notes": [], "status": "CLOSED", "ep": 2752.5, "ed": "2026-02-25"}, {"id": 21, "tk": "MSFT", "action": "BUY", "sh": 61.0, "price": 24240.0, "date": "2026-01-28", "notes": [], "status": "CLOSED", "ep": 25480.0, "ed": "2026-08-03"}, {"id": 22, "tk": "AMD", "action": "BUY", "sh": 13.0, "price": 38120.0, "date": "2026-01-28", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 23, "tk": "TSLA", "action": "BUY", "sh": 11.0, "price": 43600.0, "date": "2026-01-28", "notes": [], "status": "CLOSED", "ep": 45520.0, "ed": "2025-10-29"}, {"id": 24, "tk": "META", "action": "BUY", "sh": 35.0, "price": 42500.0, "date": "2026-01-28", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 25, "tk": "NVDA", "action": "BUY", "sh": 37.0, "price": 10870.0, "date": "2026-02-05", "notes": [], "status": "CLOSED", "ep": 11527.2973, "ed": "2026-02-09"}, {"id": 26, "tk": "BMA", "action": "BUY", "sh": 28.0, "price": 13820.0, "date": "2026-02-06", "notes": [], "status": "CLOSED", "ep": 13300.0, "ed": "2026-06-04"}, {"id": 27, "tk": "AMZN", "action": "BUY", "sh": 654.0, "price": 2134.0, "date": "2026-02-06", "notes": [], "status": "CLOSED", "ep": 2509.6789, "ed": "2026-06-23"}, {"id": 28, "tk": "GOOGL", "action": "BUY", "sh": 120.0, "price": 8300.0, "date": "2026-02-06", "notes": [], "status": "CLOSED", "ep": 9915.375, "ed": "2026-08-05"}, {"id": 29, "tk": "MELI", "action": "BUY", "sh": 40.0, "price": 24670.0, "date": "2026-02-06", "notes": [], "status": "CLOSED", "ep": 25705.0, "ed": "2026-07-28"}, {"id": 30, "tk": "IREN", "action": "BUY", "sh": 84.0, "price": 5600.0, "date": "2026-02-09", "notes": [], "status": "CLOSED", "ep": 5910.0, "ed": "2026-04-22"}, {"id": 31, "tk": "GGAL", "action": "BUY", "sh": 14.0, "price": 6925.0, "date": "2026-02-20", "notes": [], "status": "CLOSED", "ep": 7490.0, "ed": "2026-06-02"}, {"id": 32, "tk": "BMA", "action": "BUY", "sh": 15.0, "price": 13400.0, "date": "2026-02-20", "notes": [], "status": "CLOSED", "ep": 13300.0, "ed": "2026-06-04"}, {"id": 33, "tk": "MELI", "action": "BUY", "sh": 40.0, "price": 21020.0, "date": "2026-02-25", "notes": [], "status": "CLOSED", "ep": 24920.0, "ed": "2026-07-28"}, {"id": 34, "tk": "NU", "action": "BUY", "sh": 48.0, "price": 10190.0, "date": "2026-03-26", "notes": [], "status": "CLOSED", "ep": 9722.9508, "ed": "2026-06-23"}, {"id": 35, "tk": "MELI", "action": "BUY", "sh": 5.0, "price": 19630.0, "date": "2026-03-26", "notes": [], "status": "CLOSED", "ep": 24920.0, "ed": "2026-07-28"}, {"id": 36, "tk": "NU", "action": "BUY", "sh": 23.0, "price": 11280.0, "date": "2026-04-14", "notes": [], "status": "CLOSED", "ep": 9722.9508, "ed": "2026-06-23"}, {"id": 37, "tk": "BAK", "action": "BUY", "sh": 192.0, "price": 2560.0, "date": "2026-04-22", "notes": [], "status": "CLOSED", "ep": 2777.5, "ed": "2026-04-30"}, {"id": 38, "tk": "META", "action": "BUY", "sh": 14.0, "price": 37700.0, "date": "2026-04-30", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 39, "tk": "MELI", "action": "BUY", "sh": 33.0, "price": 21050.0, "date": "2026-05-08", "notes": [], "status": "CLOSED", "ep": 24920.0, "ed": "2026-07-28"}, {"id": 40, "tk": "MU", "action": "BUY", "sh": 1.0, "price": 213350.0, "date": "2026-05-12", "notes": [], "status": "CLOSED", "ep": 255200.0, "ed": "2026-05-26"}, {"id": 41, "tk": "NU", "action": "BUY", "sh": 2.0, "price": 9905.0, "date": "2026-05-12", "notes": [], "status": "CLOSED", "ep": 9722.9508, "ed": "2026-06-23"}, {"id": 42, "tk": "MU", "action": "BUY", "sh": 2.0, "price": 238000.0, "date": "2026-05-13", "notes": [], "status": "CLOSED", "ep": 301900.0, "ed": "2026-06-04"}, {"id": 43, "tk": "MU", "action": "BUY", "sh": 2.0, "price": 219800.0, "date": "2026-05-15", "notes": [], "status": "CLOSED", "ep": 301900.0, "ed": "2026-06-04"}, {"id": 44, "tk": "MU", "action": "BUY", "sh": 3.0, "price": 202391.6667, "date": "2026-05-18", "notes": [], "status": "CLOSED", "ep": 301900.0, "ed": "2026-06-04"}, {"id": 45, "tk": "NOW", "action": "BUY", "sh": 301.0, "price": 895.0, "date": "2026-05-18", "notes": [], "status": "CLOSED", "ep": 889.0, "ed": "2026-05-27"}, {"id": 46, "tk": "BBD", "action": "BUY", "sh": 183.0, "price": 5245.0, "date": "2026-05-27", "notes": [], "status": "CLOSED", "ep": 5220.0, "ed": "2026-06-23"}, {"id": 47, "tk": "META", "action": "BUY", "sh": 25.0, "price": 37465.6, "date": "2026-06-02", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 48, "tk": "NU", "action": "BUY", "sh": 49.0, "price": 9040.0, "date": "2026-06-02", "notes": [], "status": "CLOSED", "ep": 9722.9508, "ed": "2026-06-23"}, {"id": 49, "tk": "NVDA", "action": "BUY", "sh": 80.0, "price": 13530.0, "date": "2026-06-04", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 50, "tk": "BBD", "action": "BUY", "sh": 113.0, "price": 5140.0, "date": "2026-06-04", "notes": [], "status": "CLOSED", "ep": 5220.0, "ed": "2026-06-23"}, {"id": 51, "tk": "AMD", "action": "BUY", "sh": 13.0, "price": 78100.0, "date": "2026-06-04", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 52, "tk": "BAK", "action": "BUY", "sh": 356.0, "price": 2239.0, "date": "2026-06-18", "notes": [], "status": "CLOSED", "ep": 2172.0, "ed": "2026-06-23"}, {"id": 53, "tk": "GOOGL", "action": "BUY", "sh": 55.0, "price": 9080.0, "date": "2026-06-22", "notes": [], "status": "CLOSED", "ep": 9855.0, "ed": "2026-08-05"}, {"id": 54, "tk": "MU", "action": "BUY", "sh": 10.0, "price": 336487.5, "date": "2026-06-23", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 55, "tk": "SNDK", "action": "BUY", "sh": 82.0, "price": 18014.1463, "date": "2026-06-23", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 56, "tk": "GOOGL", "action": "BUY", "sh": 1.0, "price": 9115.0, "date": "2026-06-25", "notes": [], "status": "CLOSED", "ep": 9855.0, "ed": "2026-08-05"}, {"id": 57, "tk": "GOOGL", "action": "BUY", "sh": 91.0, "price": 8740.0, "date": "2026-07-24", "notes": [], "status": "CLOSED", "ep": 9855.0, "ed": "2026-08-05"}, {"id": 58, "tk": "MU", "action": "BUY", "sh": 24.0, "price": 262600.0, "date": "2026-07-28", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 59, "tk": "META", "action": "BUY", "sh": 6.0, "price": 35000.0, "date": "2026-07-30", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 60, "tk": "AMD", "action": "BUY", "sh": 39.0, "price": 76925.0, "date": "2026-08-05", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 61, "tk": "AMD", "action": "BUY", "sh": 38.0, "price": 77675.0, "date": "2026-08-06", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 62, "tk": "NBIS", "action": "BUY", "sh": 71.0, "price": 14020.0, "date": "2026-08-12", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 63, "tk": "NBIS", "action": "BUY", "sh": 68.0, "price": 15580.0, "date": "2026-08-13", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 64, "tk": "MP", "action": "BUY", "sh": 170.0, "price": 8773.3529, "date": "2026-08-13", "notes": [], "status": "OPEN", "ep": null, "ed": null}];
-var _SEED_P = {"BMA": 13300.0, "YPFD": 57725.0, "AL30": 878.3, "SPY": 51425.0, "MELI": 24920.0, "GGAL": 7490.0, "BBD": 5220.0, "VIST": 29080.0, "CVX": 16730.0, "BBV": 38060.0, "GOOGL": 9855.0, "EWZ": 27834.2857, "BAK": 2172.0, "MSFT": 25480.0, "TSLA": 45520.0, "NVDA": 13530.0, "AMZN": 2509.6789, "IREN": 5910.0, "NU": 9722.9508, "MU": 262600.0, "NOW": 889.0, "META": 35000.0, "AMD": 77675.0, "SNDK": 18014.1463, "NBIS": 15580.0, "MP": 8773.3529};
-var _DATA_VERSION = "inviu-v1";
+var _SEED_T = [{"id": 1, "tk": "BMA", "action": "BUY", "sh": 58.0, "price": 8670.0, "date": "2025-06-26", "notes": [], "status": "CLOSED", "ep": 15720.0, "ed": "2026-01-28"}, {"id": 2, "tk": "YPFD", "action": "BUY", "sh": 12.0, "price": 40400.0, "date": "2025-06-26", "notes": [], "status": "CLOSED", "ep": 57725.0, "ed": "2026-01-28"}, {"id": 3, "tk": "AL30", "action": "BUY", "sh": 370.0, "price": 826.0, "date": "2025-06-26", "notes": [], "status": "CLOSED", "ep": 878.3, "ed": "2026-01-12"}, {"id": 4, "tk": "SPY", "action": "BUY", "sh": 14.0, "price": 42300.0, "date": "2025-08-05", "notes": [], "status": "CLOSED", "ep": 51425.0, "ed": "2026-02-06"}, {"id": 5, "tk": "MELI", "action": "BUY", "sh": 8.0, "price": 25520.0, "date": "2025-10-17", "notes": [], "status": "CLOSED", "ep": 28580.0, "ed": "2025-10-29"}, {"id": 6, "tk": "AL30", "action": "BUY", "sh": 20.0, "price": 838.8, "date": "2025-10-17", "notes": [], "status": "CLOSED", "ep": 878.3, "ed": "2026-01-12"}, {"id": 7, "tk": "GGAL", "action": "BUY", "sh": 48.0, "price": 7920.0, "date": "2025-10-29", "notes": [], "status": "CLOSED", "ep": 7490.0, "ed": "2026-06-02"}, {"id": 8, "tk": "MELI", "action": "BUY", "sh": 13.0, "price": 28620.0, "date": "2025-10-29", "notes": [], "status": "CLOSED", "ep": 28580.0, "ed": "2025-10-29"}, {"id": 9, "tk": "META", "action": "BUY", "sh": 21.0, "price": 41371.4286, "date": "2025-10-30", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 10, "tk": "MELI", "action": "BUY", "sh": 17.0, "price": 25620.0, "date": "2025-12-26", "notes": [], "status": "CLOSED", "ep": 28365.8824, "ed": "2026-01-26"}, {"id": 11, "tk": "SPY", "action": "BUY", "sh": 3.0, "price": 52850.0, "date": "2025-12-26", "notes": [], "status": "CLOSED", "ep": 51425.0, "ed": "2026-02-06"}, {"id": 12, "tk": "BBD", "action": "BUY", "sh": 70.0, "price": 5470.0, "date": "2026-01-06", "notes": [], "status": "CLOSED", "ep": 5965.0, "ed": "2026-02-25"}, {"id": 13, "tk": "SPY", "action": "BUY", "sh": 4.0, "price": 53075.0, "date": "2026-01-06", "notes": [], "status": "CLOSED", "ep": 51425.0, "ed": "2026-02-06"}, {"id": 14, "tk": "VIST", "action": "BUY", "sh": 11.0, "price": 22580.0, "date": "2026-01-08", "notes": [], "status": "CLOSED", "ep": 29080.0, "ed": "2026-01-28"}, {"id": 15, "tk": "CVX", "action": "BUY", "sh": 23.0, "price": 15030.0, "date": "2026-01-08", "notes": [], "status": "CLOSED", "ep": 16730.0, "ed": "2026-02-05"}, {"id": 16, "tk": "BBV", "action": "BUY", "sh": 9.0, "price": 37200.0, "date": "2026-01-14", "notes": [], "status": "CLOSED", "ep": 38060.0, "ed": "2026-01-28"}, {"id": 17, "tk": "MELI", "action": "BUY", "sh": 13.0, "price": 26000.0, "date": "2026-01-14", "notes": [], "status": "CLOSED", "ep": 28060.0, "ed": "2026-01-26"}, {"id": 18, "tk": "GOOGL", "action": "BUY", "sh": 76.0, "price": 8695.0, "date": "2026-01-15", "notes": [], "status": "CLOSED", "ep": 8700.0, "ed": "2026-01-28"}, {"id": 19, "tk": "EWZ", "action": "BUY", "sh": 14.0, "price": 27820.0, "date": "2026-01-26", "notes": [], "status": "CLOSED", "ep": 27834.2857, "ed": "2026-05-18"}, {"id": 20, "tk": "BAK", "action": "BUY", "sh": 158.0, "price": 2830.0, "date": "2026-01-26", "notes": [], "status": "CLOSED", "ep": 2752.5, "ed": "2026-02-25"}, {"id": 21, "tk": "MSFT", "action": "BUY", "sh": 61.0, "price": 24240.0, "date": "2026-01-28", "notes": [], "status": "CLOSED", "ep": 25480.0, "ed": "2026-08-03"}, {"id": 22, "tk": "AMD", "action": "BUY", "sh": 13.0, "price": 38120.0, "date": "2026-01-28", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 23, "tk": "TSLA", "action": "BUY", "sh": 11.0, "price": 43600.0, "date": "2026-01-28", "notes": [], "status": "CLOSED", "ep": 45520.0, "ed": "2025-10-29"}, {"id": 24, "tk": "META", "action": "BUY", "sh": 35.0, "price": 42500.0, "date": "2026-01-28", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 25, "tk": "COPX", "action": "BUY", "sh": 43.0, "price": 9830.0, "date": "2026-01-28", "notes": [], "status": "CLOSED", "ep": 9850.0, "ed": "2026-06-02"}, {"id": 26, "tk": "NVDA", "action": "BUY", "sh": 37.0, "price": 10870.0, "date": "2026-02-05", "notes": [], "status": "CLOSED", "ep": 11527.2973, "ed": "2026-02-09"}, {"id": 27, "tk": "BMA", "action": "BUY", "sh": 28.0, "price": 13820.0, "date": "2026-02-06", "notes": [], "status": "CLOSED", "ep": 13300.0, "ed": "2026-06-04"}, {"id": 28, "tk": "AMZN", "action": "BUY", "sh": 654.0, "price": 2134.0, "date": "2026-02-06", "notes": [], "status": "CLOSED", "ep": 2509.6789, "ed": "2026-06-23"}, {"id": 29, "tk": "GOOGL", "action": "BUY", "sh": 120.0, "price": 8300.0, "date": "2026-02-06", "notes": [], "status": "CLOSED", "ep": 9915.375, "ed": "2026-08-05"}, {"id": 30, "tk": "MELI", "action": "BUY", "sh": 40.0, "price": 24670.0, "date": "2026-02-06", "notes": [], "status": "CLOSED", "ep": 25705.0, "ed": "2026-07-28"}, {"id": 31, "tk": "IREN", "action": "BUY", "sh": 84.0, "price": 5600.0, "date": "2026-02-09", "notes": [], "status": "CLOSED", "ep": 5910.0, "ed": "2026-04-22"}, {"id": 32, "tk": "GGAL", "action": "BUY", "sh": 14.0, "price": 6925.0, "date": "2026-02-20", "notes": [], "status": "CLOSED", "ep": 7490.0, "ed": "2026-06-02"}, {"id": 33, "tk": "BMA", "action": "BUY", "sh": 15.0, "price": 13400.0, "date": "2026-02-20", "notes": [], "status": "CLOSED", "ep": 13300.0, "ed": "2026-06-04"}, {"id": 34, "tk": "MELI", "action": "BUY", "sh": 40.0, "price": 21020.0, "date": "2026-02-25", "notes": [], "status": "CLOSED", "ep": 24920.0, "ed": "2026-07-28"}, {"id": 35, "tk": "MELI", "action": "BUY", "sh": 5.0, "price": 19630.0, "date": "2026-03-26", "notes": [], "status": "CLOSED", "ep": 24920.0, "ed": "2026-07-28"}, {"id": 36, "tk": "NU", "action": "BUY", "sh": 48.0, "price": 10190.0, "date": "2026-03-26", "notes": [], "status": "CLOSED", "ep": 9722.9508, "ed": "2026-06-23"}, {"id": 37, "tk": "NU", "action": "BUY", "sh": 23.0, "price": 11280.0, "date": "2026-04-14", "notes": [], "status": "CLOSED", "ep": 9722.9508, "ed": "2026-06-23"}, {"id": 38, "tk": "BAK", "action": "BUY", "sh": 192.0, "price": 2560.0, "date": "2026-04-22", "notes": [], "status": "CLOSED", "ep": 2777.5, "ed": "2026-04-30"}, {"id": 39, "tk": "META", "action": "BUY", "sh": 14.0, "price": 37700.0, "date": "2026-04-30", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 40, "tk": "MELI", "action": "BUY", "sh": 33.0, "price": 21050.0, "date": "2026-05-08", "notes": [], "status": "CLOSED", "ep": 24920.0, "ed": "2026-07-28"}, {"id": 41, "tk": "MU", "action": "BUY", "sh": 1.0, "price": 213350.0, "date": "2026-05-12", "notes": [], "status": "CLOSED", "ep": 255200.0, "ed": "2026-05-26"}, {"id": 42, "tk": "NU", "action": "BUY", "sh": 2.0, "price": 9905.0, "date": "2026-05-12", "notes": [], "status": "CLOSED", "ep": 9722.9508, "ed": "2026-06-23"}, {"id": 43, "tk": "MU", "action": "BUY", "sh": 2.0, "price": 238000.0, "date": "2026-05-13", "notes": [], "status": "CLOSED", "ep": 301900.0, "ed": "2026-06-04"}, {"id": 44, "tk": "MU", "action": "BUY", "sh": 2.0, "price": 219800.0, "date": "2026-05-15", "notes": [], "status": "CLOSED", "ep": 301900.0, "ed": "2026-06-04"}, {"id": 45, "tk": "MU", "action": "BUY", "sh": 3.0, "price": 202391.6667, "date": "2026-05-18", "notes": [], "status": "CLOSED", "ep": 301900.0, "ed": "2026-06-04"}, {"id": 46, "tk": "NOW", "action": "BUY", "sh": 301.0, "price": 895.0, "date": "2026-05-18", "notes": [], "status": "CLOSED", "ep": 889.0, "ed": "2026-05-27"}, {"id": 47, "tk": "BBD", "action": "BUY", "sh": 183.0, "price": 5245.0, "date": "2026-05-27", "notes": [], "status": "CLOSED", "ep": 5220.0, "ed": "2026-06-23"}, {"id": 48, "tk": "META", "action": "BUY", "sh": 25.0, "price": 37465.6, "date": "2026-06-02", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 49, "tk": "NU", "action": "BUY", "sh": 49.0, "price": 9040.0, "date": "2026-06-02", "notes": [], "status": "CLOSED", "ep": 9722.9508, "ed": "2026-06-23"}, {"id": 50, "tk": "NVDA", "action": "BUY", "sh": 80.0, "price": 13530.0, "date": "2026-06-04", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 51, "tk": "AMD", "action": "BUY", "sh": 13.0, "price": 78100.0, "date": "2026-06-04", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 52, "tk": "BBD", "action": "BUY", "sh": 113.0, "price": 5140.0, "date": "2026-06-04", "notes": [], "status": "CLOSED", "ep": 5220.0, "ed": "2026-06-23"}, {"id": 53, "tk": "BAK", "action": "BUY", "sh": 356.0, "price": 2239.0, "date": "2026-06-18", "notes": [], "status": "CLOSED", "ep": 2172.0, "ed": "2026-06-23"}, {"id": 54, "tk": "GOOGL", "action": "BUY", "sh": 55.0, "price": 9080.0, "date": "2026-06-22", "notes": [], "status": "CLOSED", "ep": 9855.0, "ed": "2026-08-05"}, {"id": 55, "tk": "MU", "action": "BUY", "sh": 10.0, "price": 336487.5, "date": "2026-06-23", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 56, "tk": "SNDK", "action": "BUY", "sh": 82.0, "price": 18014.1463, "date": "2026-06-23", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 57, "tk": "GOOGL", "action": "BUY", "sh": 1.0, "price": 9115.0, "date": "2026-06-25", "notes": [], "status": "CLOSED", "ep": 9855.0, "ed": "2026-08-05"}, {"id": 58, "tk": "GOOGL", "action": "BUY", "sh": 91.0, "price": 8740.0, "date": "2026-07-24", "notes": [], "status": "CLOSED", "ep": 9855.0, "ed": "2026-08-05"}, {"id": 59, "tk": "MU", "action": "BUY", "sh": 24.0, "price": 262600.0, "date": "2026-07-28", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 60, "tk": "META", "action": "BUY", "sh": 6.0, "price": 35000.0, "date": "2026-07-30", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 61, "tk": "AMD", "action": "BUY", "sh": 39.0, "price": 76925.0, "date": "2026-08-05", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 62, "tk": "AMD", "action": "BUY", "sh": 38.0, "price": 77675.0, "date": "2026-08-06", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 63, "tk": "NBIS", "action": "BUY", "sh": 71.0, "price": 14020.0, "date": "2026-08-12", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 64, "tk": "NBIS", "action": "BUY", "sh": 68.0, "price": 15580.0, "date": "2026-08-13", "notes": [], "status": "OPEN", "ep": null, "ed": null}, {"id": 65, "tk": "MP", "action": "BUY", "sh": 170.0, "price": 8773.3529, "date": "2026-08-13", "notes": [], "status": "OPEN", "ep": null, "ed": null}];
+var _SEED_P = {"BMA": 13300.0, "YPFD": 57725.0, "AL30": 878.3, "SPY": 51425.0, "MELI": 24920.0, "GGAL": 7490.0, "BBD": 5220.0, "VIST": 29080.0, "CVX": 16730.0, "BBV": 38060.0, "GOOGL": 9855.0, "EWZ": 27834.2857, "BAK": 2172.0, "MSFT": 25480.0, "TSLA": 45520.0, "COPX": 9850.0, "NVDA": 13530.0, "AMZN": 2509.6789, "IREN": 5910.0, "NU": 9722.9508, "MU": 262600.0, "NOW": 889.0, "META": 35000.0, "AMD": 77675.0, "SNDK": 18014.1463, "NBIS": 15580.0, "MP": 8773.3529};
+var _SEED_A = {"deposited_ars": 10077000.0, "withdrawn_ars": -1728072.96, "net_capital_ars": 8348927.04, "deposited_usd": 2600.0, "withdrawn_usd": -87.09, "net_capital_usd": 2512.91, "caucion_interest_ars": 16117.17, "caucion_interest_usd": -53.04, "dividends_ars": 52284.59, "dividends_usd": 86.09, "taxes_ars": -4617.53};
+var _DATA_VERSION = "inviu-v2";
 var _stored_version = localStorage.getItem("tj_version");
 if (_stored_version !== _DATA_VERSION) {
   localStorage.setItem("tj_t", JSON.stringify(_SEED_T));
   localStorage.setItem("tj_p", JSON.stringify(_SEED_P));
+  localStorage.setItem("tj_a", JSON.stringify(_SEED_A));
   localStorage.setItem("tj_version", _DATA_VERSION);
 }
 var T = JSON.parse(localStorage.getItem("tj_t"));
 var P = JSON.parse(localStorage.getItem("tj_p"));
+var A = JSON.parse(localStorage.getItem("tj_a") || "null") || _SEED_A;
 var H = JSON.parse(localStorage.getItem('tj_h') || '{}');
 var K = localStorage.getItem('tj_k') || '';
 var LC = T.length ? Math.max.apply(null, T.map(function(t){ return t.id; })) + 1 : 1;
@@ -408,6 +492,7 @@ function showPage(id) {
   renderAll();
   if (id === 'timeline') { populateTimelineTicker(); renderTimeline(); }
   if (id === 'holding') renderHolding();
+  if (id === 'account') renderAccount();
   if (id === 'report') { populateReportTicker(); renderReport(); }
 }
 
@@ -439,7 +524,12 @@ function save() {
   localStorage.setItem('tj_p', JSON.stringify(P));
   localStorage.setItem('tj_h', JSON.stringify(H));
 }
-function fmtDollar(v, sign) { return (v < 0 ? '-$' : (sign ? '+$' : '$')) + Math.abs(v).toFixed(2); }
+function fmtNum(v) {
+  var parts = Math.abs(v).toFixed(2).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return parts.join(',');
+}
+function fmtDollar(v, sign) { return (v < 0 ? '-$' : (sign ? '+$' : '$')) + fmtNum(v); }
 function fmtPct(v) { return (v >= 0 ? '+' : '') + v.toFixed(2) + '%'; }
 function colorClass(v) { return v > 0 ? 'pos' : v < 0 ? 'neg' : 'neu'; }
 function pnl(t) {
@@ -619,6 +709,7 @@ function deleteNote(tid, idx) {
 
 // ── Render all ─────────────────────────────────────────────────────────────
 function renderAll() {
+  renderAccount();
   renderMetrics('dm');
   renderMetrics('am');
   renderOpenTable('dob');
@@ -1056,6 +1147,48 @@ function renderReport() {
       '<td>' + runCell + '</td>' +
     '</tr>';
   }).join('');
+}
+
+// ── Account P&L ───────────────────────────────────────────────────────────
+function renderAccount() {
+  var open = T.filter(function(t){ return t.action==='BUY' && t.status==='OPEN'; });
+  var closed = T.filter(function(t){ return t.action==='BUY' && t.status==='CLOSED'; });
+  var unrealPnl = open.reduce(function(s,t){ var p=pnl(t); return s+(p?p.g:0); }, 0);
+  var realPnl = closed.reduce(function(s,t){ var p=pnl(t); return s+(p?p.g:0); }, 0);
+  var totalTradePnl = unrealPnl + realPnl;
+
+  // Summary metrics
+  var netReturn = A.net_capital_ars > 0 ? (totalTradePnl / A.net_capital_ars * 100) : 0;
+  var totalPnlIncl = totalTradePnl + A.caucion_interest_ars + A.dividends_ars + A.taxes_ars;
+  var mEl = document.getElementById('acct-metrics');
+  if(mEl) mEl.innerHTML =
+    '<div class="metric"><div class="metric-label">Net capital deployed</div><div class="metric-value">'+fmtDollar(A.net_capital_ars)+'</div></div>'+
+    '<div class="metric"><div class="metric-label">Realized trade P&L</div><div class="metric-value '+colorClass(realPnl)+'">'+fmtDollar(realPnl,true)+'</div></div>'+
+    '<div class="metric"><div class="metric-label">Unrealized P&L</div><div class="metric-value '+colorClass(unrealPnl)+'">'+fmtDollar(unrealPnl,true)+'</div></div>'+
+    '<div class="metric"><div class="metric-label">Total incl. income</div><div class="metric-value '+colorClass(totalPnlIncl)+'">'+fmtDollar(totalPnlIncl,true)+'</div></div>'+
+    '<div class="metric"><div class="metric-label">Return on capital</div><div class="metric-value '+colorClass(netReturn)+'">'+fmtPct(netReturn)+'</div></div>'+
+    '<div class="metric"><div class="metric-label">Caución interest</div><div class="metric-value '+colorClass(A.caucion_interest_ars)+'">'+fmtDollar(A.caucion_interest_ars,true)+'</div></div>';
+
+  // Detail rows
+  function setEl(id,v,forceSign){ var el=document.getElementById(id); if(!el)return; el.textContent=fmtDollar(v,forceSign); el.className='acct-val '+colorClass(v); }
+  setEl('a-dep', A.deposited_ars); setEl('a-ret', A.withdrawn_ars, true);
+  setEl('a-net', A.net_capital_ars);
+  setEl('a-rpnl', realPnl, true); setEl('a-upnl', unrealPnl, true); setEl('a-tpnl', totalTradePnl, true);
+  var ctEl=document.getElementById('a-ct-usd'); if(ctEl) ctEl.textContent='USD '+fmtDollar(A.caucion_interest_usd < 0 ? Math.abs(A.caucion_interest_usd) : A.caucion_interest_usd);
+  setEl('a-ci-ars', A.caucion_interest_ars, true); setEl('a-ci-usd', A.caucion_interest_usd, true);
+  setEl('a-div-ars', A.dividends_ars, true); var divUsdEl=document.getElementById('a-div-usd'); if(divUsdEl) divUsdEl.textContent='USD '+fmtNum(A.dividends_usd);
+  setEl('a-tax', A.taxes_ars, true);
+
+  // Waterfall chart
+  destroyChart('acct-wf');
+  var wc=document.getElementById('acct-chart-waterfall'); if(!wc) return;
+  var dark=document.documentElement.getAttribute('data-theme')==='dark';
+  var gc=dark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.07)';
+  var tc=dark?'#6b7280':'#9ca3af';
+  var labels=['Net capital','Realized P&L','Unrealized P&L','Caución interest','Dividends','Taxes','Total P&L'];
+  var values=[A.net_capital_ars, realPnl, unrealPnl, A.caucion_interest_ars, A.dividends_ars, A.taxes_ars, totalPnlIncl];
+  var colors=values.map(function(v,i){ if(i===0) return '#60a5fa'; if(i===labels.length-1) return v>=0?'#4ade80':'#f87171'; return v>=0?'rgba(74,222,128,0.75)':'rgba(248,113,113,0.75)'; });
+  CH['acct-wf']=new Chart(wc,{type:'bar',data:{labels:labels,datasets:[{data:values,backgroundColor:colors,borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return fmtDollar(ctx.raw,true);}}}},scales:{x:{grid:{color:gc},ticks:{color:tc,font:{family:'DM Mono',size:11}}},y:{grid:{color:gc},ticks:{color:tc,font:{family:'DM Mono',size:10},callback:function(v){return fmtDollar(v);}}}}}});
 }
 
 // ── Import / Export ────────────────────────────────────────────────────────
