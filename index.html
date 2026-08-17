@@ -673,11 +673,21 @@
     return lot.usdInvested !== undefined && lot.usdInvested !== null;
   }
 
+  // A lot's buyPrice/buyQty product is only meaningfully "ARS invested" if
+  // the trade actually happened in pesos. For native-USD trades ("D"-suffix
+  // instruments), buyPrice is already in dollars -- mixing it into an ARS
+  // total would silently corrupt that sum.
+  function isArsLot(lot) {
+    return !lot.buyMoneda || lot.buyMoneda === 'ARS';
+  }
+
   function renderStats() {
     const totalLots = lots.length;
     const openCount = lots.filter(l => lotStatus(l) !== 'closed').length;
     const tickers = new Set(lots.map(l => l.ticker)).size;
-    const investedOpenArs = lots.reduce((sum, l) => sum + remainingQty(l) * l.buyPrice, 0);
+    const investedOpenArs = lots
+      .filter(isArsLot)
+      .reduce((sum, l) => sum + remainingQty(l) * l.buyPrice, 0);
 
     const usdLots = lots.filter(hasUsdData);
     const investedOpenUsd = usdLots.reduce((sum, l) => {
@@ -719,7 +729,7 @@
     });
 
     let html = `<table><thead><tr>
-      <th>Ticker</th><th>Underlying</th><th class="col-date">Buy date</th><th>Qty</th><th>Buy price (ARS)</th>
+      <th>Ticker</th><th>Underlying</th><th class="col-date">Buy date</th><th>Qty</th><th>Buy price</th>
       <th>ARS invested</th><th>USD invested</th><th>Implied UNDL price</th>
       <th>Remaining</th><th>Status</th><th></th>
     </tr></thead><tbody>`;
@@ -728,7 +738,8 @@
       const rem = remainingQty(lot);
       const status = lotStatus(lot);
       const hasUsd = hasUsdData(lot);
-      const arsInvested = lot.buyQty * lot.buyPrice;
+      const isArs = isArsLot(lot);
+      const arsInvested = isArs ? lot.buyQty * lot.buyPrice : null;
 
       const sellsHtml = lot.sells.length
         ? `<div class="sell-history">${lot.sells.map(s => {
@@ -751,8 +762,8 @@
         <td>${underlyingCell}</td>
         <td class="col-date">${lot.buyDate}</td>
         <td>${fmt(lot.buyQty)}</td>
-        <td>${fmt(lot.buyPrice)}</td>
-        <td>${fmt(arsInvested)}</td>
+        <td>${isArs ? fmt(lot.buyPrice) : fmtUsd(lot.buyPrice)}</td>
+        <td>${isArs ? fmt(arsInvested) : '—'}</td>
         <td>${hasUsd ? fmtUsd(lot.usdInvested) : '—'}${cclNote}</td>
         <td>${hasUsd && lot.impliedUnderlyingPriceUSD ? fmtUsd(lot.impliedUnderlyingPriceUSD) : '—'}</td>
         <td>${fmt(rem)}${sellsHtml}</td>
