@@ -351,6 +351,8 @@
     <div class="brand-sub">CEDEAR position tracker — INVIU</div>
   </div>
   <div class="header-actions">
+    <button class="btn-ghost" id="refreshPricesBtn" onclick="refreshPrices()">Refresh prices</button>
+    <span id="lastRefreshed" style="font-size:11px;color:var(--ink-faint);margin-right:8px"></span>
     <button class="btn-ghost" onclick="exportData()">Export JSON</button>
     <button class="btn-ghost" onclick="document.getElementById('importFile').click()">Import JSON</button>
     <input type="file" id="importFile" accept="application/json" onchange="importData(event)">
@@ -446,6 +448,99 @@
 <script>
   const STORAGE_KEY = 'lots_tracker_v1';
   let lots = [];
+
+  // --- Finnhub live pricing (Wave 3) ---------------------------------
+  // IMPORTANT: replace with your own Finnhub API key before deploying.
+  // This is a client-side-only tool (no backend), so this key is visible
+  // to anyone who views the page source. Acceptable for personal use on
+  // the free tier -- but if this tool is ever shared with other people,
+  // this MUST move behind a server-side proxy (e.g. a Vercel serverless
+  // function) before that happens. Do not skip that step at that point.
+  const FINNHUB_API_KEY = 'd9uaom1r01qs9cmbv2bgd9uaom1r01qs9cmbv2c0';
+  const FINNHUB_BASE = 'https://finnhub.io/api/v1';
+
+  let livePrices = {};      // { TICKER: { price, changePct, fetchedAt } }
+  let lastRefreshedAt = null;
+
+  async function fetchQuote(ticker) {
+    const url = `${FINNHUB_BASE}/quote?symbol=${encodeURIComponent(ticker)}&token=${FINNHUB_API_KEY}`;
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    // Finnhub returns c=0 (and all zero fields) for an unrecognized symbol
+    // rather than an HTTP error -- treat that as "no data" too.
+    if (!data || data.c === undefined || data.c === 0) {
+      throw new Error('no data returned');
+    }
+    return { price: data.c, changePct: data.dp };
+  }
+
+  async function refreshPrices() {
+    if (FINNHUB_API_KEY === 'YOUR_FINNHUB_API_KEY_HERE') {
+      showToast('Add your Finnhub API key in the script before refreshing prices.');
+      return;
+    }
+
+    const tickers = [...new Set(
+      lots.map(l => l.underlyingTicker).filter(Boolean)
+    )];
+
+    if (tickers.length === 0) {
+      showToast('No lots with an underlying ticker to price yet.');
+      return;
+    }
+
+    const btn = document.getElementById('refreshPricesBtn');
+    btn.disabled = true;
+    btn.textContent = 'Refreshing…';
+
+    const results = await Promise.allSettled(tickers.map(t => fetchQuote(t)));
+    const failed = [];
+
+    results.forEach((r, i) => {
+      const ticker = tickers[i];
+      if (r.status === 'fulfilled') {
+        livePrices[ticker] = { ...r.value, fetchedAt: new Date() };
+      } else {
+        failed.push(ticker);
+      }
+    });
+
+    lastRefreshedAt = new Date();
+    btn.disabled = false;
+    btn.textContent = 'Refresh prices';
+
+    if (failed.length > 0) {
+      showToast(`Prices updated. Could not fetch: ${failed.join(', ')}`);
+    } else {
+      showToast(`Prices updated for ${tickers.length} ticker(s).`);
+    }
+
+    render();
+  }
+
+  // Unrealized P&L for the still-open portion of a lot, in USD.
+  // Returns null if we don't have both a cost basis and a live price.
+  function unrealizedPnl(lot) {
+    if (!hasUsdData(lot) || !lot.underlyingTicker) return null;
+    const quote = livePrices[lot.underlyingTicker];
+    if (!quote) return null;
+
+    const rem = remainingQty(lot);
+    const fraction = lot.buyQty ? rem / lot.buyQty : 0;
+    const remainingEquivShares = (lot.equivalentUnderlyingShares || 0) * fraction;
+    const remainingCostUsd = (lot.usdInvested || 0) * fraction;
+    const currentValueUsd = remainingEquivShares * quote.price;
+
+    return {
+      currentPrice: quote.price,
+      currentValueUsd,
+      remainingCostUsd,
+      pnlUsd: currentValueUsd - remainingCostUsd,
+      pnlPct: remainingCostUsd > 0 ? ((currentValueUsd - remainingCostUsd) / remainingCostUsd) * 100 : null,
+    };
+  }
+  // ---------------------------------------------------------------------
 
   function load() {
     try {
@@ -681,6 +776,12 @@
     return !lot.buyMoneda || lot.buyMoneda === 'ARS';
   }
 
+  function fmtPct(n) {
+    if (n === null || n === undefined || isNaN(n)) return '—';
+    const sign = n > 0 ? '+' : '';
+    return `${sign}${n.toFixed(2)}%`;
+  }
+
   function renderStats() {
     const totalLots = lots.length;
     const openCount = lots.filter(l => lotStatus(l) !== 'closed').length;
@@ -703,9 +804,33 @@
       { label: 'Open cost basis (USD)', value: usdLots.length ? fmtUsd(investedOpenUsd) : '—' }
     ];
 
+    // Only show live P&L stats once at least one price has actually been fetched.
+    if (Object.keys(livePrices).length > 0) {
+      let totalValue = 0, totalCost = 0, pricedCount = 0;
+      lots.forEach(l => {
+        const p = unrealizedPnl(l);
+        if (p) {
+          totalValue += p.currentValueUsd;
+          totalCost += p.remainingCostUsd;
+          pricedCount++;
+        }
+      });
+      const totalPnl = totalValue - totalCost;
+      const totalPnlPct = totalCost > 0 ? (totalPnl / totalCost) * 100 : null;
+      stats.push({ label: 'Market value (USD)', value: fmtUsd(totalValue) });
+      stats.push({
+        label: 'Unrealized P&L (USD)',
+        value: `<span style="color:${totalPnl >= 0 ? 'var(--up)' : 'var(--down)'}">${fmtUsd(totalPnl)} (${fmtPct(totalPnlPct)})</span>`
+      });
+    }
+
     document.getElementById('statsRow').innerHTML = stats.map(s =>
       `<div class="stat"><div class="stat-label">${s.label}</div><div class="stat-value">${s.value}</div></div>`
     ).join('');
+
+    document.getElementById('lastRefreshed').textContent = lastRefreshedAt
+      ? `Prices as of ${lastRefreshedAt.toLocaleTimeString()}`
+      : '';
   }
 
   function render() {
@@ -731,6 +856,7 @@
     let html = `<table><thead><tr>
       <th>Ticker</th><th>Underlying</th><th class="col-date">Buy date</th><th>Qty</th><th>Buy price</th>
       <th>ARS invested</th><th>USD invested</th><th>Implied UNDL price</th>
+      <th>Current price</th><th>Market value</th><th>Unrealized P&L</th>
       <th>Remaining</th><th>Status</th><th></th>
     </tr></thead><tbody>`;
 
@@ -740,6 +866,7 @@
       const hasUsd = hasUsdData(lot);
       const isArs = isArsLot(lot);
       const arsInvested = isArs ? lot.buyQty * lot.buyPrice : null;
+      const pnl = unrealizedPnl(lot);
 
       const sellsHtml = lot.sells.length
         ? `<div class="sell-history">${lot.sells.map(s => {
@@ -766,6 +893,9 @@
         <td>${isArs ? fmt(arsInvested) : '—'}</td>
         <td>${hasUsd ? fmtUsd(lot.usdInvested) : '—'}${cclNote}</td>
         <td>${hasUsd && lot.impliedUnderlyingPriceUSD ? fmtUsd(lot.impliedUnderlyingPriceUSD) : '—'}</td>
+        <td>${pnl ? fmtUsd(pnl.currentPrice) : '—'}</td>
+        <td>${pnl ? fmtUsd(pnl.currentValueUsd) : '—'}</td>
+        <td>${pnl ? `<span style="color:${pnl.pnlUsd >= 0 ? 'var(--up)' : 'var(--down)'}">${fmtUsd(pnl.pnlUsd)}<div style="font-size:10px">${fmtPct(pnl.pnlPct)}</div></span>` : '—'}</td>
         <td>${fmt(rem)}${sellsHtml}</td>
         <td><span class="status status-${status}">${status}</span></td>
         <td><button class="btn-ghost" onclick="deleteLot('${lot.id}')">Delete</button></td>
