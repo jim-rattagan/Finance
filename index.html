@@ -254,6 +254,10 @@
     vertical-align: top;
   }
 
+  .col-date {
+    white-space: nowrap;
+  }
+
   .ticker-cell {
     font-family: var(--sans);
     font-weight: 700;
@@ -715,8 +719,8 @@
     });
 
     let html = `<table><thead><tr>
-      <th>Ticker</th><th>Underlying</th><th>Buy date</th><th>Qty</th><th>Buy price (ARS)</th>
-      <th>USD invested</th><th>Implied UNDL price</th>
+      <th>Ticker</th><th>Underlying</th><th class="col-date">Buy date</th><th>Qty</th><th>Buy price (ARS)</th>
+      <th>ARS invested</th><th>USD invested</th><th>Implied UNDL price</th>
       <th>Remaining</th><th>Status</th><th></th>
     </tr></thead><tbody>`;
 
@@ -724,6 +728,7 @@
       const rem = remainingQty(lot);
       const status = lotStatus(lot);
       const hasUsd = hasUsdData(lot);
+      const arsInvested = lot.buyQty * lot.buyPrice;
 
       const sellsHtml = lot.sells.length
         ? `<div class="sell-history">${lot.sells.map(s => {
@@ -744,9 +749,10 @@
       html += `<tr>
         <td class="ticker-cell">${lot.ticker}</td>
         <td>${underlyingCell}</td>
-        <td>${lot.buyDate}</td>
+        <td class="col-date">${lot.buyDate}</td>
         <td>${fmt(lot.buyQty)}</td>
         <td>${fmt(lot.buyPrice)}</td>
+        <td>${fmt(arsInvested)}</td>
         <td>${hasUsd ? fmtUsd(lot.usdInvested) : '—'}${cclNote}</td>
         <td>${hasUsd && lot.impliedUnderlyingPriceUSD ? fmtUsd(lot.impliedUnderlyingPriceUSD) : '—'}</td>
         <td>${fmt(rem)}${sellsHtml}</td>
